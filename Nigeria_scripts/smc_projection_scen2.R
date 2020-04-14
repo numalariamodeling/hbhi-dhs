@@ -138,7 +138,7 @@ head(all_smc)
 all_smc$LGA <- gsub("\\/", "-", all_smc$LGA)
 
 all_smc<- all_smc %>%  mutate(duration = -1, coverage_high_access = 1,
-                              coverage_low_access = 0.80, max_age = 5)
+                              coverage_low_access = 0.60, max_age = 5)
 
 write.csv(all_smc, 'results/archetype_sim_input/Intervention_files_LGA/smc_scen2.csv')
 

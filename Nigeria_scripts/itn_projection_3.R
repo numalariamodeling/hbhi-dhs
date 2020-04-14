@@ -7,7 +7,7 @@ itn.scen3$LGA <- gsub("\\/", "-", itn.scen3$LGA)
 
 in_80_fun <- function(x){ifelse(x < 0.80, 0.80,x)} #function to increase by up to 80%
 
-s1_itn_80 <- read.csv('results/archetype_sim_input/Intervention_files_LGA/ITN/itn_scenario1_v3_2021.csv') %>% 
+s1_itn_80 <- read.csv('results/archetype_sim_input/Intervention_files_LGA/ITN/itn_scenario1_v3.csv') %>% 
   mutate_at(vars(matches("use")), in_80_fun)
 head(s1_itn_80)
 

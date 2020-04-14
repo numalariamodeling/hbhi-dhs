@@ -25,29 +25,38 @@ peak <- c('july', 'july', 'may', 'august', 'july', 'september', 'august', 'augus
           'march', 'august')
 
 df <- tibble(repDS, peak)
+head(df)
 
 
 smc_3_ <- smc_3 %>% left_join(df)
-head(smc_3)
+head(smc_3_)
 
+#giving march smc and may smc the same timing
+smc_2020 <- smc_3_ %>% mutate(simday = if_else(peak == 'july',186,if_else(peak == 'may',131,
+                                      if_else(peak == 'august', 223, if_else(peak == 'june',162, 
+                                      if_else(peak =='march', 131, if_else(peak =='september',
+                                        250, NA_real_)))))), year = 2020)
 
+smc_2020 <- expandRows(smc_2020, count = 4,count.is.col=FALSE, 
+                       drop = FALSE) 
+
+smc_2020 <- smc_2020 %>% 
+  group_by(LGA) %>% mutate(round = rep(c(1,2,3,4)))
+
+head(smc_2020, 20)
+
+smc_2020 <- smc_2020 %>% 
+  mutate(simday = if_else(round == 2, simday + 30,
+                          if_else(round == 3, simday + 60, 
+                                  if_else(round ==4, simday + 90, simday))))
+
+head(smc_2020, 20)
 
 #2021
-smc_2021 <- smc_3_ %>% mutate(simday = if_else(peak == 'july',550,if_else(peak == 'may',488,
+smc_2021 <- smc_2020 %>% mutate(simday = if_else(peak == 'july',550,if_else(peak == 'may',488,
                                                     if_else(peak == 'august', 579, if_else(peak == 'june',518, 
                                                         if_else(peak =='march', 426, if_else(peak =='september',
                                                             610, NA_real_)))))), year = 2021)
-
-
-smc_2021 <- expandRows(smc_2021, count = 4,count.is.col=FALSE, 
-                       drop = FALSE) 
-
-smc_2021 <- smc_2021 %>% 
-  group_by(LGA) %>% mutate(round = rep(c(1,2,3,4), times = 235))
-
-head(smc_2021, 20)
-
-
 
 smc_2021 <- smc_2021 %>% 
   mutate(simday = if_else(round == 2, simday + 30,
@@ -121,7 +130,7 @@ smc_2025 <- smc_2025 %>%
 head(smc_2025)
 
 
-all_smc <-do.call("rbind", list(smc_2021, 
+all_smc <-do.call("rbind", list(smc_2020, smc_2021, 
                                 smc_2022, smc_2023, smc_2024,
                                 smc_2025))
 
@@ -132,7 +141,7 @@ head(all_smc)
 all_smc$LGA <- gsub("\\/", "-", all_smc$LGA)
 
 all_smc<- all_smc %>%  mutate(duration = -1, coverage_high_access = 1,
-                              coverage_low_access = 0.80, max_age = 5)
+                              coverage_low_access = 0.60, max_age = 5)
 
 write.csv(all_smc, 'results/archetype_sim_input/Intervention_files_LGA/smc_scen3_no_PAAR.csv')
 

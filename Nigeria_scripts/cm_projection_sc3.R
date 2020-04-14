@@ -36,22 +36,22 @@ head(cm_2)
 summary(cm_2$U5_coverage)
 summary(cm_2$adult_coverage)
 
-cm_3 <- expandRows(cm_2, count = 3,count.is.col=FALSE, 
+cm_3 <- expandRows(cm_2, count = 6,count.is.col=FALSE, 
                    drop = FALSE) 
 head(cm_3)
 
-lookup_key <- c(1, 2, 3)
+lookup_key <- c(1, 2, 3, 4, 5, 6)
 
 cm_3 <- cm_3 %>% mutate(round = 
-                          rep(seq(lookup_key),  times =774), severe_cases = 0.49)
+                          rep(lookup_key, times=774), severe_cases =0.49)
 head(cm_3)
 
 
-sim_day <- c(468, 1289, 2051)
+sim_day <- c(71, 436, 801, 1166, 1532, 1898)
 
-year_sim <- c(2021, 2023, 2025)
+year_sim <- c(2020, 2021, 2022, 2023, 2024, 2025)
 
-duration <- c(821, 762, 140)
+duration <- c(365, 365, 365, 365, 365, 294)
 
 
 df_sim <- tibble(lookup_key, sim_day, year_sim, duration)
@@ -74,12 +74,14 @@ head(cm_3)
 
 max_v <- 1
 cm_3 <- cm_3 %>% mutate(scale_values = ifelse(round == 2, scale_values*2, ifelse(round == 3,
-                                                        scale_values*3, scale_values)),
+                                                        scale_values*3,ifelse(round ==4, scale_values *4,
+                                                                ifelse(round ==5, scale_values *5,
+                                                                  ifelse(round ==6, scale_values*6, scale_values))) )),
                         U5_coverage = pmin(U5_coverage + scale_values,max_v),
                         adult_coverage = U5_coverage, severe_cases = pmin(severe_cases + scale_values, max_v))
 
 head(cm_3, 15)
 
-write.csv(cm_3, 'results/archetype_sim_input/Intervention_files_LGA/case_management/cm_scen3.csv')
+write.csv(cm_3, 'results/archetype_sim_input/Intervention_files_LGA/case_management/cm_scen3_v3.csv')
 
 

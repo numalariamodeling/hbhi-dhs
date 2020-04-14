@@ -22,23 +22,23 @@ s2_itn$LGA <- gsub("\\/", "-", s2_itn$LGA)
 
 
 in_80_fun <- function(x){ifelse(x < 0.80, 0.80,x)} #function to increase by up to 80%  
-in_10_fun <- function(x){pmin(x + (0.10*x), 1)} #function to increase by 10% 
-in_20_fun <- function(x){pmin(x + (0.20*x), 1)} #function to increase by 20% 
-in_30_fun <- function(x){pmin(x + (0.30*x), 1)} #function to increase by 30% 
+in_10_fun <- function(x){ifelse(x < 0.80, pmin(x + (0.10*x), 0.80), x)} #function to increase by 10% 
+in_20_fun <- function(x){ifelse(x < 0.80, pmin(x + (0.20*x), 0.80), x)} #function to increase by 20% 
+in_30_fun <- function(x){ifelse(x < 0.80, pmin(x + (0.30*x), 0.80), x)} #function to increase by 30% 
 
-s1_itn_80 <- read.csv('results/archetype_sim_input/Intervention_files_LGA/itn_scenario1_v3.csv') %>% 
+s1_itn_80 <- read.csv('results/archetype_sim_input/Intervention_files_LGA/ITN/itn_scenario1_v3.csv') %>% 
               mutate_at(vars(matches("use")), in_80_fun)
 head(s1_itn_80)
 
 
-s1_itn_10 <- read.csv('results/archetype_sim_input/Intervention_files_LGA/itn_scenario1_v3.csv') %>% 
+s1_itn_10 <- read.csv('results/archetype_sim_input/Intervention_files_LGA/ITN/itn_scenario1_v3.csv') %>% 
   mutate_at(vars(matches("use")), in_10_fun)
 
 head(s1_itn_10)
 
 summary(s1_itn_10$over_eighteen_ITN_use)
 
-s1_itn_20 <- read.csv('results/archetype_sim_input/Intervention_files_LGA/itn_scenario1_v3.csv') %>% 
+s1_itn_20 <- read.csv('results/archetype_sim_input/Intervention_files_LGA/ITN/itn_scenario1_v3.csv') %>% 
   mutate_at(vars(matches("use")), in_20_fun)
 
 head(s1_itn_20)
@@ -46,7 +46,7 @@ head(s1_itn_20)
 summary(s1_itn_20$over_eighteen_ITN_use)
 
 
-s1_itn_30 <- read.csv('results/archetype_sim_input/Intervention_files_LGA/itn_scenario1_v3.csv') %>% 
+s1_itn_30 <- read.csv('results/archetype_sim_input/Intervention_files_LGA/ITN/itn_scenario1_v3.csv') %>% 
   mutate_at(vars(matches("use")), in_30_fun)
 
 head(s1_itn_30)

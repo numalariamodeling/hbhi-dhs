@@ -71,10 +71,12 @@ write.csv(cm_5, 'results/archetype_sim_input/Intervention_files_LGA/case_managem
 cm_2 <- read.csv('bin/projection/s2_v2/HS_placeholder_v2.csv')
 head(cm_2)
 
-cm_2 <- cm_2 %>% mutate(U5_coverage = pmin(U5_coverage + (U5_coverage *0.10), 1), adult_coverage = U5_coverage)
+cm_2 <- cm_2 %>% mutate(U5_coverage = ifelse(U5_coverage < 0.80, pmin(U5_coverage + (U5_coverage *0.10), max_v),U5_coverage),
+                        adult_coverage = U5_coverage) 
 head(cm_2)
 
 summary(cm_2$U5_coverage)
+
 
 write.csv(cm_2, 'results/archetype_sim_input/Intervention_files_LGA/case_management/cm_scen2_10.csv')
 
@@ -82,8 +84,10 @@ write.csv(cm_2, 'results/archetype_sim_input/Intervention_files_LGA/case_managem
 # increase cm coverage by 20% 
 cm_2 <- read.csv('bin/projection/s2_v2/HS_placeholder_v2.csv')
 head(cm_2)
+summary(cm_2$U5_coverage)
 
-cm_2 <- cm_2 %>% mutate(U5_coverage = pmin(U5_coverage + (U5_coverage *0.20), 1), adult_coverage = U5_coverage)
+cm_2 <- cm_2 %>% mutate(U5_coverage = ifelse(U5_coverage <0.80, pmin(U5_coverage + (U5_coverage *0.20), max_v), U5_coverage),
+                        adult_coverage = U5_coverage)
 head(cm_2)
 
 summary(cm_2$U5_coverage)
@@ -92,11 +96,12 @@ write.csv(cm_2, 'results/archetype_sim_input/Intervention_files_LGA/case_managem
 
 
 
-# increase cm coverage by 20% 
+# increase cm coverage by 30% 
 cm_2 <- read.csv('bin/projection/s2_v2/HS_placeholder_v2.csv')
 head(cm_2)
 
-cm_2 <- cm_2 %>% mutate(U5_coverage = pmin(U5_coverage + (U5_coverage *0.30), 1), adult_coverage = U5_coverage)
+cm_2 <- cm_2 %>% mutate(U5_coverage = ifelse(U5_coverage < 0.80, pmin(U5_coverage + (U5_coverage *0.30), max_v),U5_coverage),
+                        adult_coverage = U5_coverage)
 head(cm_2)
 
 summary(cm_2$U5_coverage)
