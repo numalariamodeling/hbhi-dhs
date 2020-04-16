@@ -9,6 +9,7 @@ rm(list=ls())
 
 setwd("C:/Users/ido0493/Box/NU-malaria-team/data/nigeria_dhs/data_analysis")
 
+
 #setwd("~/Box/NU-malaria-team/data/nigeria_dhs/data_analysis")
 
 #important to download the github version of tidyverse.Uncomment the script below to run
@@ -16,7 +17,7 @@ setwd("C:/Users/ido0493/Box/NU-malaria-team/data/nigeria_dhs/data_analysis")
 #devtools::install_github("hadley/tidyverse")
 ## Reading in the necessary libraries 
 x <- c("tidyverse", "survey", "haven", "ggplot2", "purrr", "summarytools", "stringr", "sp", "rgdal", "raster",
-       "lubridate", "RColorBrewer","sf", "shinyjs", "tmap", "knitr", "labelled", "plotrix","rlang", "arules", "foreign",
+       "lubridate", "RColorBrewer","sf", "shinyjs", "tmap", "knitr", "labelled", "plotrix", "arules", "foreign",
        "fuzzyjoin", "splitstackshape")
 
 lapply(x, library, character.only = TRUE) #applying the library function to packages
@@ -58,10 +59,12 @@ LGAshp <- readOGR("data/Nigeria_LGAs_shapefile_191016", layer ="NGA_LGAs", use_i
 
 
 
-LGAshp_sf <- st_as_sf(LGAshp) 
+LGAshp_sf <- st_as_sf(LGAshp)
+
+LGA_Ad <- LGAshp_sf %>%  filter(State == "Adamawa")
 
 
-#st_write(LGAshp_sf, "results/archetype_sim_input/NGA_LGA.csv")
+st_write(LGA_Ad, "Adamawa_LGA.csv")
 
 head(LGAshp_sf)
 

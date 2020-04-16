@@ -17,6 +17,19 @@ ex.fun <- function(x){y <- summary(x)$coef
                           y[2]}
 
 list.mod <- map(cm_split, model.fun)
+summary(list.mod[1]$`Ahoada West`)
+
+png("Ahoda_West.png")
+plot(comboACT ~ year, data = cm_split$`Ahoada West`, xlab = "Year", ylab = "Coverage Percent")
+abline(coef(list.mod[1]$`Ahoada West`)[1:2], col = "red")
+cf <- round(coef(list.mod[1]$`Ahoada West`), 3) 
+
+eq <- paste0(" CM coverage = ", cf[1]," + ", abs(cf[2]), " year ")
+
+mtext(eq, 3, line=-2)
+dev.off()
+
+
 scale.factors <- map(list.mod, ex.fun)
 
 values <- do.call(rbind.data.frame, scale.factors)
