@@ -61,6 +61,11 @@ LGAshp <- readOGR("data/Nigeria_LGAs_shapefile_191016", layer ="NGA_LGAs", use_i
 
 LGAshp_sf <- st_as_sf(LGAshp)
 
+LGAshp_sf$LGA <- gsub("\\/", "-", LGAshp_sf$LGA)
+
+LGA_cov <-  LGAshp_sf %>% mutate(LGA = ifelse(LGA == "kaita","Kaita", ifelse(LGA == "kiyawa", "Kiyawa", as.character(LGA))))
+
+
 # LGA_Ad <- LGAshp_sf %>%  filter(State == "Adamawa")
 # 
 # 

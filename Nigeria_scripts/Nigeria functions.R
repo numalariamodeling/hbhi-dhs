@@ -30,7 +30,7 @@ recoder.ml0 <- function(data){
 
 recoder.wealth <- function(data, col){
   name_new <- paste0(quo_name(col), "_new")
-  mutate(data, !!name_new := ifelse(!!col < 5, 0, 1))
+  mutate(data, !!name_new := ifelse(!!col < 4, 0, 1))
 }
 
 recoder.gen <- function(data, col){
