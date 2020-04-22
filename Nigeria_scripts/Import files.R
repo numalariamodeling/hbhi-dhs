@@ -61,10 +61,10 @@ LGAshp <- readOGR("data/Nigeria_LGAs_shapefile_191016", layer ="NGA_LGAs", use_i
 
 LGAshp_sf <- st_as_sf(LGAshp)
 
-LGA_Ad <- LGAshp_sf %>%  filter(State == "Adamawa")
-
-
-st_write(LGA_Ad, "Adamawa_LGA.csv")
+# LGA_Ad <- LGAshp_sf %>%  filter(State == "Adamawa")
+# 
+# 
+# st_write(LGA_Ad, "Adamawa_LGA.csv")
 
 head(LGAshp_sf)
 

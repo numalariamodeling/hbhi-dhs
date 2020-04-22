@@ -1,10 +1,10 @@
 
 #This function read in all files with three different file patterns in all folders and subfolders in the working directory
 
-read.files <- function(filepat1, filepat2, filepat3) {
-  in_files_I <- list.files(path = "data", pattern = filepat1, recursive = TRUE, full.names = TRUE)
-  in_files_K <- list.files(path = "data", pattern =  filepat2, recursive = TRUE, full.names = TRUE)
-  in_files_P <- list.files(path = "data", pattern = filepat3, recursive = TRUE, full.names = TRUE)
+read.files <- function(filepat1, filepat2, filepat3, path) {
+  in_files_I <- list.files(path = path, pattern = filepat1, recursive = TRUE, full.names = TRUE)
+  in_files_K <- list.files(path = path, pattern =  filepat2, recursive = TRUE, full.names = TRUE)
+  in_files_P <- list.files(path = path, pattern = filepat3, recursive = TRUE, full.names = TRUE)
   filenames <- rbind(in_files_I, in_files_K, in_files_P)
   sapply(filenames, read_dta, simplify = F)
 }
@@ -229,10 +229,10 @@ result.clu.fun<- function(var, var1, design, data, year) {
   
   p_est<-svyby(formula=make.formula(var), by=make.formula(var1), FUN=svymean, design, na.rm=T) 
   
-  num_est <- data%>%drop_na(var)%>%dplyr::select(v001, num_p)%>%group_by(v001) %>% summarise_each(funs(mean, sd, std.error, n()))%>% 
+  num_est <- data%>%drop_na(var)%>%dplyr::select(hv001, num_p)%>%group_by(hv001) %>% summarise_each(funs(mean, sd, std.error, n()))%>% 
     dplyr::select(-mean, -sd, -std.error)
   
-  df <- p_est%>%left_join(num_est)%>% rename(`Number of Participants` = n, DHSCLUST = v001)
+  df <- p_est%>%left_join(num_est)%>% rename(`Number of Participants` = n, DHSCLUST = hv001)
   
   year <- data.frame(year = unique(data[,year]))
   
