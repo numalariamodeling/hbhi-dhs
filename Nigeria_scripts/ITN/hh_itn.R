@@ -1,33 +1,32 @@
-# creating list of files with PR data for 2003, 2008, 2010, 2013, 2015, 2017/2018
-# computes use of ITN by anyone in the HH 
 
-var_label(NGAfiles[[6]]$hv103)
+# ITN coverage for year 2003 - 2018 with mapping script 
 
-PR.list <- list(NGAfiles[[6]], NGAfiles[[9]], NGAfiles[[12]], NGAfiles[[15]], NGAfiles[[18]], NGAfiles[[21]])
+if (Variable == "ITN"){
+  itn.ls <-read.files( ".*NGPR.*\\.DTA", DataDir, read_dta)
+  itn.ls[[1]] <- NULL 
+  itn.ls <- lapply(itn.ls, subset, hv103 == 1)
+  itn.ls <- map(itn.ls, recode_itn)
+  itn.ls <- map(itn.ls, survey.month.fun)
+  key_list[[1]] <- NULL
+  NGAshplist[[1]]<- NULL
+  NGA_ID <- lapply(NGAshplist, "[[", "DHSCLUST")
+  key_list <- Map(cbind, key_list, v001 = NGA_ID)
+  itn.ls <- map2(itn.ls, key_list, left_join)
+}
 
-PR.list <- lapply(PR.list, subset, hv103 == "1")
+if (subVariable == "> 18"){
+  itn.ls <- lapply(itn.ls, subset, hv105 > 18)
+}else if (subVariable == "U5"){
+  itn.ls <-lapply(itn.ls, subset, hv105 <= 5)
+}else if (subVariable == "6-9"){
+  itn.ls <-lapply(itn.ls, subset, hv105 > 5 & hv105 < 10)
+}else if (subVariable == "10-18"){
+  itn.ls <-lapply(itn.ls, subset, hv105 > 9 & hv105 < 19)
+}else {
+  itn.ls <- itn.ls
+}
 
-PR.list <- map(PR.list, recode_itn)
 
-
-
-PR.list <- map(PR.list, survey.month.fun)
-
-# key list for ITN (2003, 2008, 2010, 2013, 2015, 2017/2018)
-keys.hh.itn <- list(key_list[[2]], key_list[[3]], key_list[[4]], key_list[[5]],key_list[[6]], key_list[[7]]) 
-#changing to a list of keys 
-
-
-# key datasets and dhs/mis datasets are joined  
-hh.itn.list <- map2(PR.list, keys.hh.itn, left_join) #PR datasets
-
-rep_DS.ls <- list(rep_DS)
-
-hh.itn.list <- map2(hh.itn.list, rep_DS.ls, left_join) #PR datasets
-
-hh.itn.list  <- lapply(hh.itn.list, subset, hv105 <= 5)
-# 
-# var_label(hh.itn.list[[6]]$hml12)
 
 
 #####################################################################################################

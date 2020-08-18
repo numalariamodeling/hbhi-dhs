@@ -1,102 +1,141 @@
-CM <- read.csv("bin/LGA_map_input/HS_by_LGA_v2_mid.csv") 
-head(CM)
-
-CM$LGA <- gsub("\\/", "-", CM$LGA)
+rm(list=ls())
 
 
-cm_split <- split(CM, CM$year)
+#setwd("C:/Users/ido0493/Box/NU-malaria-team/data/nigeria_dhs/data_analysis")
+
+
+setwd("~/Box/NU-malaria-team/data/nigeria_dhs/data_analysis")
+
+#important to download the github version of tidyverse.Uncomment the script below to run
+# install.packages("devtools") #download devtools if is not available in your packages 
+#devtools::install_github("hadley/tidyverse")
+## Reading in the necessary libraries 
+x <- c("tidyverse", "survey", "haven", "ggplot2", "purrr", "summarytools", "stringr", "sp", "rgdal", "raster",
+       "lubridate", "RColorBrewer","sf", "shinyjs", "tmap", "knitr", "labelled", "plotrix", "arules", "foreign",
+       "fuzzyjoin", "splitstackshape")
+
+lapply(x, library, character.only = TRUE) #applying the library function to packages
+
+# read in LGA shape file 
 
 LGAshp <- readOGR("data/Nigeria_LGAs_shapefile_191016", layer ="NGA_LGAs", use_iconv=TRUE, encoding= "UTF-8")
 
 LGAshp_sf <- st_as_sf(LGAshp)
-LGAshp_sf$LGA <- gsub("\\/", "-", LGAshp_sf$LGA)
 
-LGA_cov <-  LGAshp_sf %>% mutate(LGA = ifelse(LGA == "kaita","Kaita", ifelse(LGA == "kiyawa", "Kiyawa", as.character(LGA))))
+LGA_names <- read.csv("bin/names/LGA_shp_pop_names.csv")
 
-LGA_cov_2 <- left_join(LGA_cov, cm_split$`2018`, by = "LGA")
-head(LGA_cov_2)
+LGAshp_sf_2 <- left_join(LGAshp_sf, LGA_names, by=c("LGA" = "LGA_shape"))
 
-summary(LGA_cov_2$U5_coverage)
-
-
-#map
-eighteen <- tm_shape(LGA_cov_2) + #this is the health district shapfile with LLIn info
-  tm_polygons(col = "U5_coverage", textNA = "No data", 
-              title = "", palette = "seq", breaks=c(0,0.2, 0.3, 
-                                                               0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0))+
-  tm_layout(title = "2018 LGA CM", aes.palette = list(seq="RdYlBu")) 
-
-CM_maps <-tmap_arrange(ten, thirteen, fifteen, eighteen)
-
-tmap_save(tm = CM_maps, filename = "results/LGA_maps/CM/CM_2010_2018.pdf", width=13, height=13, units ="in", asp=0,
-          paper ="A4r", useDingbats=FALSE)
-
-# ITN
-
-ITN <- read.csv('bin/LGA_map_input/projection/ITN_scen2_80.csv')
-head(ITN)
-
-ITN_split <- split(ITN, ITN$year)
-
-LGA_cov_2 <- left_join(LGA_cov, ITN_split$`2023`, by = "LGA")
-head(LGA_cov_2)
-
-summary(LGA_cov_2$U5_ITN_use)
-
-#map
-ten <- tm_shape(LGA_cov_2) + #this is the health district shapfile with LLIn info
-  tm_polygons(col = "ten_eighteen_ITN_use", textNA = "No data", 
-              title = "", palette = "seq", breaks=c(0,0.2, 0.3, 
-                                                    0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0))+
-  tm_layout(title = "2023 ten to eighteen", aes.palette = list(seq="RdYlBu")) 
-
-ITN_maps <-tmap_arrange(u5, six, ten, over_eight)
-
-tmap_save(tm = ITN_maps, filename = "results/LGA_maps/ITN/ITN_scen2_2022.pdf", width=13, height=13, units ="in", asp=0,
-          paper ="A4r", useDingbats=FALSE)
+# # interventions 
+# 
+# CM <- read.csv("bin/LGA_map_input/HS_by_LGA_v2_mid.csv") 
+# head(CM)
+# 
+# CM$LGA <- gsub("\\/", "-", CM$LGA)
+# 
+# 
+# cm_split <- split(CM, CM$year)
+# 
+# LGA_cov_2 <- left_join(LGA_cov, cm_split$`2018`, by = "LGA")
+# head(LGA_cov_2)
+# 
+# summary(LGA_cov_2$U5_coverage)
+# 
+# 
+# #map
+# eighteen <- tm_shape(LGA_cov_2) + #this is the health district shapfile with LLIn info
+#   tm_polygons(col = "U5_coverage", textNA = "No data", 
+#               title = "", palette = "seq", breaks=c(0,0.2, 0.3, 
+#                                                                0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0))+
+#   tm_layout(title = "2018 LGA CM", aes.palette = list(seq="RdYlBu")) 
+# 
+# CM_maps <-tmap_arrange(ten, thirteen, fifteen, eighteen)
+# 
+# tmap_save(tm = CM_maps, filename = "results/LGA_maps/CM/CM_2010_2018.pdf", width=13, height=13, units ="in", asp=0,
+#           paper ="A4r", useDingbats=FALSE)
+# 
+# # ITN
+# 
+# ITN <- read.csv('bin/LGA_map_input/projection/ITN_scen2_80.csv')
+# head(ITN)
+# 
+# ITN_split <- split(ITN, ITN$year)
+# 
+# LGA_cov_2 <- left_join(LGA_cov, ITN_split$`2023`, by = "LGA")
+# head(LGA_cov_2)
+# 
+# summary(LGA_cov_2$U5_ITN_use)
+# 
+# #map
+# ten <- tm_shape(LGA_cov_2) + #this is the health district shapfile with LLIn info
+#   tm_polygons(col = "ten_eighteen_ITN_use", textNA = "No data", 
+#               title = "", palette = "seq", breaks=c(0,0.2, 0.3, 
+#                                                     0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0))+
+#   tm_layout(title = "2023 ten to eighteen", aes.palette = list(seq="RdYlBu")) 
+# 
+# ITN_maps <-tmap_arrange(u5, six, ten, over_eight)
+# 
+# tmap_save(tm = ITN_maps, filename = "results/LGA_maps/ITN/ITN_scen2_2022.pdf", width=13, height=13, units ="in", asp=0,
+#           paper ="A4r", useDingbats=FALSE)
 
 # SMC 
 
-smc <- read.csv('bin/LGA_map_input/projection/smc_scen3_no_PAAR_v3.csv') 
+smc <- read.csv('results/archetype_sim_input/Intervention_files_LGA/smc_cc_2010_2020.csv') 
 head(smc)
 summary(smc$year)
 
-smc_split <- split(smc, smc$year)
+smc_2 <- smc %>% group_by(LGA, year) %>%  summarise(coverage_high_access = mean(coverage_high_access),
+                                                    coverage_low_access = mean(coverage_low_access)) %>% 
+  ungroup(LGA) %>%  mutate(LGA_nga_pop = trimws(LGA)) %>%  dplyr::select(-c(LGA))
 
-smc_2020 <- smc_split$`2020`[smc_split$`2020`$round == 4,]
-head(smc_2020)
+smc_split <- split(smc_2, smc_2$year)
 
-smc_pop <- smc_2020 %>% dplyr::select(LGA)
+
+
+# smc_2020 <- smc_split$`2020`[smc_split$`2020`$round == 4,]
+# head(smc_2020)
+# 
+# smc_pop <- smc_2020 %>% dplyr::select(LGA)
 
 
 
 # population by LGA 
 
-ng_pop <- read.csv("bin/nigeria_LGA_pop.csv") %>%  dplyr::select(LGA, geopode.pop.0.4)
-head(ng_pop)
+# ng_pop <- read.csv("bin/pop_density/nigeria_LGA_pop.csv") %>%  dplyr::select(LGA)
+# head(ng_pop)
 
 
 
-smc_pop_2 <- anti_join(ng_pop,smc_pop, by="LGA") %>% summarise(sum(geopode.pop.0.4))
+#smc_pop_2 <- left_join(ng_pop,smc_split[[7]], by="LGA") #%>% summarise(sum(geopode.pop.0.4))
 
 
 
-summary(is.na(smc_pop_2$geopode.pop.0.4))
+#summary(is.na(smc_pop_2$geopode.pop.0.4))
 
-LGA_cov_2 <- left_join(LGA_cov, smc_2020, by = "LGA") 
-head(LGA_cov_2)
+LGAshp <- list(LGAshp_sf_2, LGAshp_sf_2, LGAshp_sf_2, LGAshp_sf_2, LGAshp_sf_2, LGAshp_sf_2, LGAshp_sf_2)
 
+join<- map2(LGAshp, smc_split, left_join)
 
-summary(LGA_cov_2$coverage_high_access)
+summary(join[[3]]$year)
 
 #map
-twenty_20_high  <- tm_shape(LGA_cov_2) + #this is the health district shapfile with LLIn info
-  tm_polygons(col = "coverage_high_access", textNA = "No data", 
-              title = "", palette = "seq", breaks=c(0,0.2, 0.3, 
-                                                    0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0))+
-  tm_layout(title = "2020 SMC high LGA ITN", aes.palette = list(seq="RdYlBu")) 
+map_fun <- function(shpfile, map_val) {
+   year <- unique(na.omit(shpfile$year))
+   tm_shape(shpfile) + #this is the health district shapfile with LLIn info
+  tm_polygons(col = map_val, textNA = "No data", 
+              title = "", palette = "seq", breaks=c(0, 0.1, 0.2, 
+                                                    0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 1.0))+
+  tm_layout(title = paste0(year,  " " , "SMC low LGA ITN"),
+            aes.palette = list(seq="RdYlBu")) 
+}
 
-SMC_maps <- tmap_arrange(twenty_20_low,twenty_20_high) 
+map_val <- list("coverage_low_access")
+maps <- map2(join, map_val, map_fun)
+arrange_maps <- do.call(tmap_arrange, maps)
+
+SMC_maps <- tmap_arrange(twenty_13_low, twenty_13_high, twenty_14_low, twenty_14_high,twenty_15_low, 
+                         twenty_15_high,twenty_16_low, twenty_16_high, twenty_17_low, twenty_17_high,
+                         twenty_18_low, twenty_18_high, twenty_19_low, twenty_19_high) 
                          
                          # (twenty_15_low, 
                          # twenty_15_high,twenty_16_low,twenty_16_high)

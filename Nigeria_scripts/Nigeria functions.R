@@ -1,12 +1,21 @@
+x <- c("tidyverse", "survey", "haven", "ggplot2", "purrr", "summarytools", "stringr", "sp", "rgdal", "raster",
+       "lubridate", "RColorBrewer","sf", "shinyjs", "tmap", "knitr", "labelled", "plotrix", "arules", "foreign",
+       "fuzzyjoin", "splitstackshape")
+
+lapply(x, library, character.only = TRUE) #applying the library function to packages
+
+
+options(survey.lonely.psu="adjust") # this option allows admin units with only one cluster to be analyzed
+
 
 #This function read in all files with three different file patterns in all folders and subfolders in the working directory
 
-read.files <- function(filepat1, filepat2, filepat3, path) {
-  in_files_I <- list.files(path = path, pattern = filepat1, recursive = TRUE, full.names = TRUE)
-  in_files_K <- list.files(path = path, pattern =  filepat2, recursive = TRUE, full.names = TRUE)
-  in_files_P <- list.files(path = path, pattern = filepat3, recursive = TRUE, full.names = TRUE)
-  filenames <- rbind(in_files_I, in_files_K, in_files_P)
-  sapply(filenames, read_dta, simplify = F)
+read.files <- function(filepat1,path,fun) {
+  filenames <- list.files(path = path, pattern = filepat1, recursive = TRUE, full.names = TRUE)
+  #in_files_K <- list.files(path = path, pattern =  filepat2, recursive = TRUE, full.names = TRUE)
+  #in_files_P <- list.files(path = path, pattern = filepat3, recursive = TRUE, full.names = TRUE)
+  #filenames <- rbind(in_files_I, in_files_K, in_files_P)
+  sapply(filenames, fun, simplify = F)
 }
 
 
@@ -16,6 +25,18 @@ read.files2 <- function(filepat1, filepat2, filepat3) {
   in_files_P<- list.files(path = "data", pattern = filepat3, recursive = TRUE, full.names = TRUE)
   filenames <- rbind(in_files_I, in_files_K, in_files_P)
   sapply(filenames, read_sav, simplify = F)
+}
+
+
+# map_sim results
+map_fun <- function(shpfile, map_val) {
+  number <- unique(na.omit(shpfile$meta_information))
+  tm_shape(shpfile) + #this is the health district shapfile with LLIn info
+    tm_polygons(col = map_val, textNA = "No data", 
+                title = "", palette = "seq", breaks=c(0, 0.1, 0.2, 
+                                                      0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 1.0))+
+    tm_layout(title = paste0(number,  " " , "State U5 PfPR 2025"),
+              aes.palette = list(seq="RdYlBu")) 
 }
 
 
@@ -98,7 +119,7 @@ recoder.ml1 <- function(data){
 
 #recoder itn
 recode_itn <- function(data) {
-  data %>% mutate(hh_itn = ifelse(hml12 == "9", NA,ifelse(hml12 =="1" | hml12 =="2", 1, 0)))
+  data %>% mutate(hh_itn = ifelse(hml12 == 9, NA,ifelse(hml12 ==1 | hml12 ==2, 1, 0)))
 }
 
 #This function takes an admin boundary and a point shape file and plots them on top of each other 

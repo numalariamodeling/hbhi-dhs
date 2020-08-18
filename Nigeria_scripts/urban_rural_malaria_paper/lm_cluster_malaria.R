@@ -24,11 +24,11 @@ pfpr_dhs <- pfpr_data%>% filter(hv025 == 1)
 
 # estimate cluster-level malaria prevalence
 
-pfpr_place<- dataclean.para(pfpr_place, hv005, hc1, hml32, 'hml32', 'p_test') 
+pfpr_place<- funEnv$dataclean.para(pfpr_place, hv005, hc1, hml32, 'hml32', 'p_test') 
 
-svy_mal <- svydesign.fun(pfpr_place)
+svy_mal <- funEnv$svydesign.fun(pfpr_place)
 
-clu_est <- result.fun('p_test', 'hv001', design=svy_mal, pfpr_place, "hv007")
+clu_est <- funEnv$result.fun('p_test', 'hv001', design=svy_mal, pfpr_place, "hv007")
 head(clu_est)
 
 
@@ -39,7 +39,7 @@ table(pfpr_df$hv270)
 pfpr_wealth <- pfpr_df %>%  mutate(wealth = ifelse(hv270 <4, 0, 1))
 table(pfpr_wealth$wealth)
 
-pfpr_wealth<- dataclean.para(pfpr_wealth, hv005, hv005, wealth, 'wealth', 'wealth_2') 
+pfpr_wealth<- funEnv$dataclean.para(pfpr_wealth, hv005, hv005, wealth, 'wealth', 'wealth_2') 
 table(pfpr_wealth$wealth_2)
 
 svyd_wealth<- svydesign.fun(pfpr_wealth)

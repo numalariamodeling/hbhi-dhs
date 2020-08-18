@@ -1,3 +1,4 @@
+setwd("C:/Users/ido0493/Box/NU-malaria-team/data/nigeria_dhs/data_analysis")
 library(splitstackshape)
 
 # For scenario 3, we first get an estimate of the averagechange in coverage per year 
@@ -51,25 +52,28 @@ head(cm_2)
 summary(cm_2$U5_coverage)
 summary(cm_2$adult_coverage)
 
-cm_3 <- expandRows(cm_2, count = 6,count.is.col=FALSE, 
+cm_3 <- expandRows(cm_2, count = 11,count.is.col=FALSE, 
                    drop = FALSE) 
-head(cm_3)
+head(cm_3, 11)
 
-lookup_key <- c(1, 2, 3, 4, 5, 6) # 3, 4, 5, 6
+lookup_key <- c(1, 2, 3, 4, 5, 6, 7, 8, 9 , 10, 11) # 3, 4, 5, 6
 
-cm_3 <- cm_3 %>% mutate(round = 
-                          rep(lookup_key, times=774), severe_cases =0.49)
-head(cm_3)
-
-
-sim_day <- c(71, 436)#801, 1166, 1532, 1898
-
-year_sim <- c(2020, 2021, 2022, 2023, 2024, 2025)
-
-duration <- c(365, 365, 365, 365, 365, 294)
+cm_3$round <- rep(1:11)
+cm_3$severe_cases <- 0.49
+tail(cm_3,30)
 
 
-df_sim <- tibble(lookup_key, sim_day, year_sim, duration)
+sim_day <- c(71,436,801,1166,1531,1896, 2261, 2626,2991,3356, 3721)
+
+year_sim <- c(2020, 2021, 2022, 2023, 2024, 2025, 2026, 2027, 2028, 2029, 2030)
+
+duration <- c(365, 365, 365, 365, 365, 365, 365, 365, 365, 365, 365)
+
+scale_multipliers <- c(2, 3,4, 5, 6, 7,8, 9, 10, 11, 12)
+
+
+df_sim <- tibble(lookup_key, sim_day, year_sim, duration, scale_multipliers)
+head(df_sim)
 
 
 cm_3$simday[cm_3$round %in% df_sim$lookup_key == TRUE]<- 
@@ -81,22 +85,24 @@ cm_3$duration[cm_3$round %in% df_sim$lookup_key == TRUE] <-
 cm_3$year[cm_3$round %in% df_sim$lookup_key == TRUE] <- 
         year_sim[df_sim$lookup_key %in% cm_3$round == TRUE]
 
+cm_3$scale_m[cm_3$round %in% df_sim$lookup_key == TRUE] <- 
+  scale_multipliers[df_sim$lookup_key %in% cm_3$round == TRUE]
+
 head(cm_3)
 
 cm_3 <- cm_3 %>% left_join(df)
 
-head(cm_3)
+head(cm_3, 13)
 
-max_v <- 1
-cm_3 <- cm_3 %>% mutate(scale_values = ifelse(round == 2, scale_values*2, ifelse(round == 3,
-                                                        scale_values*3,ifelse(round ==4, scale_values *4,
-                                                                ifelse(round ==5, scale_values *5,
-                                                                  ifelse(round ==6, scale_values*6, scale_values))) )),
+max_v <- 0.80
+cm_3 <- cm_3 %>% mutate(scale_values = scale_values*scale_m,
                         U5_coverage = pmin(U5_coverage + scale_values,max_v),
                         adult_coverage = U5_coverage, severe_cases = pmin(severe_cases + scale_values, max_v))
 
 head(cm_3, 15)
 
-write.csv(cm_3, 'results/archetype_sim_input/Intervention_files_LGA/case_management/cm_scen3_v3.csv')
+file_path <- "C:/Users/ido0493/Box/NU-malaria-team/projects/hbhi_nigeria/simulation_inputs/projection_csvs/projection_v2"
+
+write.csv(cm_3, paste0(file_path, "/cm_scen3_v4.csv"))
 
 

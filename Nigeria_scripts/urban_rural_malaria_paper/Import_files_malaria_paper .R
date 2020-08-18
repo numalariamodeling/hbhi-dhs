@@ -1,199 +1,186 @@
-# imports and prepares DHS, LGA, state admin and population density files, 
-# and maps DHS cluster points onto state admin files
-
-# download SDSM packge from github
-
-# install.packages("devtools")  
-# devtools::install_github("statnmap/SDMSelect")
-
 rm(list=ls())
 
 
-#setwd("C:/Users/ido0493/Box/NU-malaria-team/data/nigeria_dhs/data_analysis")
-
-
-setwd("~/Box/NU-malaria-team/data/nigeria_dhs/data_analysis")
-
-#important to download the github version of tidyverse.Uncomment the script below to run
-# install.packages("devtools") #download devtools if is not available in your packages 
-#devtools::install_github("hadley/tidyverse")
-## Reading in the necessary libraries 
+# Reading in the necessary packages 
 x <- c("tidyverse", "survey", "haven", "ggplot2", "purrr", "summarytools", "stringr", "sp", "rgdal", "raster",
        "lubridate", "RColorBrewer","sf", "shinyjs", "tmap", "knitr", "labelled", "plotrix", "arules", "foreign",
-       "fuzzyjoin", "maptools", "spatstat", "SDMSelect", "INLA")
+       "fuzzyjoin", "splitstackshape")
 
 lapply(x, library, character.only = TRUE) #applying the library function to packages
 
 
+# set document path to current script path 
+setwd("C:/Users/ido0493/Box/NU-malaria-team/data/nigeria_dhs/data_analysis")
 
-# update.packages(oldPkgs = x)
+
+# reads in functions so we can alias it using funenv$
+funEnv <- new.env()
+sys.source(file = file.path("src", "Nigeria functions.R"), envir = funEnv, toplevel.env = funEnv)
+
 
 options(survey.lonely.psu="adjust") # this option allows admin units with only one cluster to be analyzed
 
-# require(pacman)
-# p_unlock()
 
-source("src/Nigeria functions.R")
 
-dhs_list <- read.files(".*NGIR.*\\.DTA", ".*NGKR.*\\.DTA", ".*NGPR.*\\.DTA", "data/NG_2018_DHS_11072019_1720_86355")
+dhs_list <- funEnv$read.files(".*NGIR.*\\.DTA", ".*NGKR.*\\.DTA", ".*NGPR.*\\.DTA", "data/NG_2018_DHS_11072019_1720_86355")
 
 
 #read in NG cluster data 
-
-NGAshpfiles <- readOGR('data/NG_2018_DHS_11072019_1720_86355/NGGE7AFL', layer ="NGGE7AFL", use_iconv=TRUE, encoding= "UTF-8")
-
-#read population data and create density file 
-
-
-LGAshp <- readOGR("data/Nigeria_LGAs_shapefile_191016", layer ="NGA_LGAs", use_iconv=TRUE, encoding= "UTF-8")
-head(LGAshp)
-
-
-LGA_sf <- st_as_sf(LGAshp)
-head(LGA_sf)
-
-
-# read LGA population density and turn to raster for 2020 
-
-pop_name <- "data/NGA_pop/gpw-v4-population-density-rev11_2020_30_sec_tif/gpw_v4_population_density_rev11_2020_30_sec.tif"
-pop_raster=raster(pop_name)
-pop_crop <- crop(pop_raster, LGAshp)
-summary(pop_crop)
-plot(pop_crop)
-hist(pop_crop)
-
-img <- as.im(pop_crop) #converts to im object 
-img[img == 0] <- NA
-pop.lg <- log(img) #convert pop density data to log 
-summary(pop.lg, main=NULL, las=1)
-
-plot(pop.lg)
-hist(pop.lg)
- 
-NGA_pop <- read.csv("bin/nigeria_pop_density.csv") %>%  mutate(log_den = log(UN_2020_DS))
-hist(NGA_pop$UN_2020_DS) #population density data is skewed 
-hist(NGA_pop$log_den)
-  
-LGA_pop_den <- left_join(LGA_sf, NGA_pop,  by = "LGA")
-# head(LGA_pop_den)
 # 
-# # LGAshp <- as_Spatial(LGA_pop_den)
-# # head(LGAshp)
+# NGAshpfiles <- readOGR('data/NG_2018_DHS_11072019_1720_86355/NGGE7AFL', layer ="NGGE7AFL", use_iconv=TRUE, encoding= "UTF-8")
 # 
-# template <- raster(ext = extent(LGA_pop_den), crs = projection(LGA_pop_den))
-# pop_rst <- rasterize(LGA_pop_den, template, field = "UN_2020_DS")
-# plot(pop_rst)
+# #read population data and create density file 
 # 
-# img <- as.im(pop_rst) #converts to im object 
 # 
+# LGAshp <- readOGR("data/Nigeria_LGAs_shapefile_191016", layer ="NGA_LGAs", use_iconv=TRUE, encoding= "UTF-8")
+# head(LGAshp)
+# 
+# 
+# LGA_sf <- st_as_sf(LGAshp)
+# head(LGA_sf)
+# 
+# 
+# # read LGA population density and turn to raster for 2020 
+# 
+# pop_name <- "data/NGA_pop/gpw-v4-population-density-rev11_2020_30_sec_tif/gpw_v4_population_density_rev11_2020_30_sec.tif"
+# pop_raster=raster(pop_name)
+# pop_crop <- crop(pop_raster, LGAshp)
+# summary(pop_crop)
+# plot(pop_crop)
+# hist(pop_crop)
+# 
+# img <- as.im(pop_crop) #converts to im object 
+# img[img == 0] <- NA
 # pop.lg <- log(img) #convert pop density data to log 
 # summary(pop.lg, main=NULL, las=1)
+# 
 # plot(pop.lg)
-
-#read in LGA area files 
-
-# str <- "data/NGA_pop/gpw-v4-admin-unit-center-points-population-estimates-rev11_nga_csv/gpw_v4_admin_unit_center_points_population_estimates_rev11_nga.csv"
-# LGA_area <- read.csv(str) %>% dplyr::select(NAME1, NAME2, TOTAL_A_KM) %>% mutate(NAME2 = str_to_title(NAME2),
-#                                                                                  NAME1 = str_to_title(NAME1))
-# colnames(LGA_area)<- c("State", "LGA", "area_sq_km")
-# head(LGA_area)
-# write.csv(LGA_area, "bin/LGA_area.csv")
-LGA_area<- read.csv("bin/LGA_area.csv")
-
-
-LGA_sf_2 <- left_join(LGA_sf, LGA_area, by="LGA") %>%  mutate(area_sq_km = ifelse(LGA == "Wudil", 336.3673617, 
-                                                                                  ifelse(LGA == "Ibadan North", 17.76379982,
-                                                                                         area_sq_km)))
-
-LGA_sf_2 <- as(LGA_sf_2, "Spatial")
-
-ad <- as(LGA_sf_2, "owin") #converts admin 1 to owin object 
-
-plot(LGA_sf_2)
-plot(NGAshpfiles, add =T, col = 'red')
-
-# map cluster points onto admin 2 and get cluster level id 
-library(rgeos)
-key_2018 <- over(SpatialPoints(coordinates(NGAshpfiles),proj4string = NGAshpfiles@proj4string), LGA_sf_2)
-head(key_2018)
-key_2018$hv001<-NGAshpfiles@data[,"DHSCLUST"]
-
-
-#read in the nighttime lights for January 2020 
-
-lgt_name<-'bin/night_lights/SVDNB_npp_20200101-20200131_75N060W_vcmcfg_v10_c202002111500.avg_rade9h.tif' 
-lgt_raster=raster(lgt_name)
-plot(lgt_raster)
-
-
-# we want to generate the average night time lights by LGA
-
-# crop the raster using the vector extent
-lgt_crop <- crop(lgt_raster, LGAshp)
-plot(lgt_crop, main = "Cropped lights extent")
-# lgt_crop <- crop(lgt_crop, pop_crop)
-# lgt_crop_res <- projectRaster(lgt_crop, pop_crop)
-
-
-# This makes a table of mean night time lights by LGA 
-# lgt_Extent<-extent(lgt_crop) #get extent
-
-lgt_Ext<-raster::extract(lgt_crop,LGAshp, df = TRUE,fun = mean, na.rm = TRUE, cellnumbers=TRUE)  #extract avg night light value by LGA
-
-colnames(lgt_Ext)[2]<- "avg_night_lights"
-
-lgt_Ext$LGA<-LGAshp$LGA #get LGA ID 
-
-
-# make map of LGA aggregated lights 
-
-LGA_lgt_plot <- left_join(LGA_sf, lgt_Ext) %>% 
-                        mutate(avg_night_lights = ifelse(avg_night_lights<=0, 0, avg_night_lights))# stop here and go to next section just for maps. continue if you want rasterized map
-summary(LGA_lgt_plot$avg_night_lights)
-
-NGA_pop <- dplyr::select(NGA_pop, LGA, UN_2020_DS, log_den)
-
-LGA_lgt_plot_2 <- left_join(LGA_lgt_plot, NGA_pop)
-
-
-template <- raster(ext = extent(LGA_lgt_plot), crs = projection(LGA_lgt_plot))
-lgt_rst <- rasterize(LGA_lgt_plot, template, field = "avg_night_lights")
-plot(lgt_rst)
-hist(lgt_rst)
-
-#remove negative values 
-lgt_rst [lgt_rst < 0] <- NA
-
-img <- as.im(lgt_rst) #converts to im object 
-
-lgt.lg <- log(img) #convert night time lights data to log 
-lgt.lg [lgt.lg  == 0] <- NA
-summary(lgt.lg, main=NULL, las=1)
-plot(lgt.lg)
-hist(lgt.lg)
-
-
-# we need to convert negative light values to 0 
-
-lgt_ex_2 <- lgt_Ext %>%  mutate(avg_night_lights = ifelse(avg_night_lights < 0, 0, avg_night_lights),
-                                log_lght = log(avg_night_lights))
-
-hist(lgt_ex_2$log_lght)
-
-
-# do the same for shapefile
-
-plot <- LGA_lgt_plot %>%  mutate(avg_night_lights = ifelse(avg_night_lights < 0, 0, avg_night_lights))
-class(plot$avg_night_lights)
-
-LGA_lgt<- tm_shape(LGA_lgt_plot) + #this is the health district shapfile with LLIn info
-  tm_polygons(col = "avg_night_lights", textNA = "No data", 
-              title = "Annual Average radiance composite images by LGA (2016) ", palette = "seq", breaks=c(0, 0.04, 0.1, 
-                                                               0.9, 2, 6, 10, 15, 20, 25))+
-  tm_layout(title = "", aes.palette = list(seq="RdYlBu"))
-
-tmap_save(tm = LGA_lgt, filename = "results/malaria_DHS_paper/nightlights/LGA_lghts_aggregate_2016_annual.pdf",width=13, height=13, units ="in", asp=0,
-          paper ="A4r", useDingbats=FALSE)
+# hist(pop.lg)
+#  
+# NGA_pop <- read.csv("bin/nigeria_pop_density.csv") %>%  mutate(log_den = log(UN_2020_DS))
+# hist(NGA_pop$UN_2020_DS) #population density data is skewed 
+# hist(NGA_pop$log_den)
+#   
+# LGA_pop_den <- left_join(LGA_sf, NGA_pop,  by = "LGA")
+# # head(LGA_pop_den)
+# # 
+# # # LGAshp <- as_Spatial(LGA_pop_den)
+# # # head(LGAshp)
+# # 
+# # template <- raster(ext = extent(LGA_pop_den), crs = projection(LGA_pop_den))
+# # pop_rst <- rasterize(LGA_pop_den, template, field = "UN_2020_DS")
+# # plot(pop_rst)
+# # 
+# # img <- as.im(pop_rst) #converts to im object 
+# # 
+# # pop.lg <- log(img) #convert pop density data to log 
+# # summary(pop.lg, main=NULL, las=1)
+# # plot(pop.lg)
+# 
+# #read in LGA area files 
+# 
+# # str <- "data/NGA_pop/gpw-v4-admin-unit-center-points-population-estimates-rev11_nga_csv/gpw_v4_admin_unit_center_points_population_estimates_rev11_nga.csv"
+# # LGA_area <- read.csv(str) %>% dplyr::select(NAME1, NAME2, TOTAL_A_KM) %>% mutate(NAME2 = str_to_title(NAME2),
+# #                                                                                  NAME1 = str_to_title(NAME1))
+# # colnames(LGA_area)<- c("State", "LGA", "area_sq_km")
+# # head(LGA_area)
+# # write.csv(LGA_area, "bin/LGA_area.csv")
+# LGA_area<- read.csv("bin/LGA_area.csv")
+# 
+# 
+# LGA_sf_2 <- left_join(LGA_sf, LGA_area, by="LGA") %>%  mutate(area_sq_km = ifelse(LGA == "Wudil", 336.3673617, 
+#                                                                                   ifelse(LGA == "Ibadan North", 17.76379982,
+#                                                                                          area_sq_km)))
+# 
+# LGA_sf_2 <- as(LGA_sf_2, "Spatial")
+# 
+# ad <- as(LGA_sf_2, "owin") #converts admin 1 to owin object 
+# 
+# plot(LGA_sf_2)
+# plot(NGAshpfiles, add =T, col = 'red')
+# 
+# # map cluster points onto admin 2 and get cluster level id 
+# library(rgeos)
+# key_2018 <- over(SpatialPoints(coordinates(NGAshpfiles),proj4string = NGAshpfiles@proj4string), LGA_sf_2)
+# head(key_2018)
+# key_2018$hv001<-NGAshpfiles@data[,"DHSCLUST"]
+# 
+# 
+# #read in the nighttime lights for January 2020 
+# 
+# lgt_name<-'bin/night_lights/SVDNB_npp_20200101-20200131_75N060W_vcmcfg_v10_c202002111500.avg_rade9h.tif' 
+# lgt_raster=raster(lgt_name)
+# plot(lgt_raster)
+# 
+# 
+# # we want to generate the average night time lights by LGA
+# 
+# # crop the raster using the vector extent
+# lgt_crop <- crop(lgt_raster, LGAshp)
+# plot(lgt_crop, main = "Cropped lights extent")
+# # lgt_crop <- crop(lgt_crop, pop_crop)
+# # lgt_crop_res <- projectRaster(lgt_crop, pop_crop)
+# 
+# 
+# # This makes a table of mean night time lights by LGA 
+# # lgt_Extent<-extent(lgt_crop) #get extent
+# 
+# lgt_Ext<-raster::extract(lgt_crop,LGAshp, df = TRUE,fun = mean, na.rm = TRUE, cellnumbers=TRUE)  #extract avg night light value by LGA
+# 
+# colnames(lgt_Ext)[2]<- "avg_night_lights"
+# 
+# lgt_Ext$LGA<-LGAshp$LGA #get LGA ID 
+# 
+# 
+# # make map of LGA aggregated lights 
+# 
+# LGA_lgt_plot <- left_join(LGA_sf, lgt_Ext) %>% 
+#                         mutate(avg_night_lights = ifelse(avg_night_lights<=0, 0, avg_night_lights))# stop here and go to next section just for maps. continue if you want rasterized map
+# summary(LGA_lgt_plot$avg_night_lights)
+# 
+# NGA_pop <- dplyr::select(NGA_pop, LGA, UN_2020_DS, log_den)
+# 
+# LGA_lgt_plot_2 <- left_join(LGA_lgt_plot, NGA_pop)
+# 
+# 
+# template <- raster(ext = extent(LGA_lgt_plot), crs = projection(LGA_lgt_plot))
+# lgt_rst <- rasterize(LGA_lgt_plot, template, field = "avg_night_lights")
+# plot(lgt_rst)
+# hist(lgt_rst)
+# 
+# #remove negative values 
+# lgt_rst [lgt_rst < 0] <- NA
+# 
+# img <- as.im(lgt_rst) #converts to im object 
+# 
+# lgt.lg <- log(img) #convert night time lights data to log 
+# lgt.lg [lgt.lg  == 0] <- NA
+# summary(lgt.lg, main=NULL, las=1)
+# plot(lgt.lg)
+# hist(lgt.lg)
+# 
+# 
+# # we need to convert negative light values to 0 
+# 
+# lgt_ex_2 <- lgt_Ext %>%  mutate(avg_night_lights = ifelse(avg_night_lights < 0, 0, avg_night_lights),
+#                                 log_lght = log(avg_night_lights))
+# 
+# hist(lgt_ex_2$log_lght)
+# 
+# 
+# # do the same for shapefile
+# 
+# plot <- LGA_lgt_plot %>%  mutate(avg_night_lights = ifelse(avg_night_lights < 0, 0, avg_night_lights))
+# class(plot$avg_night_lights)
+# 
+# LGA_lgt<- tm_shape(LGA_lgt_plot) + #this is the health district shapfile with LLIn info
+#   tm_polygons(col = "avg_night_lights", textNA = "No data", 
+#               title = "Annual Average radiance composite images by LGA (2016) ", palette = "seq", breaks=c(0, 0.04, 0.1, 
+#                                                                0.9, 2, 6, 10, 15, 20, 25))+
+#   tm_layout(title = "", aes.palette = list(seq="RdYlBu"))
+# 
+# tmap_save(tm = LGA_lgt, filename = "results/malaria_DHS_paper/nightlights/LGA_lghts_aggregate_2016_annual.pdf",width=13, height=13, units ="in", asp=0,
+#           paper ="A4r", useDingbats=FALSE)
 
 
 

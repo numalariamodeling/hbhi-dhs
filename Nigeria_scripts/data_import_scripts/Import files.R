@@ -7,10 +7,10 @@
 rm(list=ls())
 
 
-#setwd("C:/Users/ido0493/Box/NU-malaria-team/data/nigeria_dhs/data_analysis")
+setwd("C:/Users/ido0493/Box/NU-malaria-team/data/nigeria_dhs/data_analysis")
 
 
-setwd("~/Box/NU-malaria-team/data/nigeria_dhs/data_analysis")
+#setwd("~/Box/NU-malaria-team/data/nigeria_dhs/data_analysis")
 
 #important to download the github version of tidyverse.Uncomment the script below to run
 # install.packages("devtools") #download devtools if is not available in your packages 
@@ -37,13 +37,11 @@ source("src/Nigeria functions.R")
 # --- reading and cleaning the datasets --- #
 #############################################################################################
 # DHS datasets 
-NGAfiles<-read.files(".*NGIR.*\\.DTA", ".*NGKR.*\\.DTA", ".*NGPR.*\\.DTA", "data")
+# NGAfiles<-read.files(".*NGIR.*\\.DTA", ".*NGKR.*\\.DTA", ".*NGPR.*\\.DTA", "data")
 
-#table(NGAfiles[[19]]$m49a_1)
+filenames <- list.files(path = "data", pattern = ".*NGPR.*\\.DTA", recursive = TRUE, full.names = TRUE)
+dhs <- sapply(filenames, read_dta, simplify = F)
 
-#2003, 2008, 2010, 2013, 2015, 2018 
-
-# NGAfiles_2<-read.files(".*NGIR.*\\.DTA", ".*NGKR.*\\.DTA", ".*NGHR.*\\.DTA") # reads in a different combination of files to be used for IRS analysis 
 
 
 # cluster locations 
