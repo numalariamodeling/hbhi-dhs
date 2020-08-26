@@ -1,26 +1,28 @@
-# identifying the combo with ACT variable 
-look_for(NGAfiles[[20]], "fever")
+cm.ls <-read.files( ".*NGKR.*\\.DTA", DataDir, read_dta)
+cm.ls <- cm.ls[-c(1, 2)]
 
-table(NGAfiles[[20]]$ml13e)
+
+# identifying the combo with ACT variable 
+look_for(cm.ls[[4]], "fever")
+
+table(cm.ls[[1]]$ml13e)
 
 val_labels(NGAfiles[[8]]$b5)
 
 # recoding variables 
-NGAfiles[[11]][,"ml13e"] <-recoder(NGAfiles[[11]][,"ml13e"]) 
-table(NGAfiles[[11]]$ml13e)
+cm.ls[[3]][,"ml13e"] <-recoder(cm.ls[[3]][,"ml13e"]) 
+table(cm.ls[[3]]$ml13e)
 
-NGAfiles[[14]][,"ml13e"] <-recoder(NGAfiles[[14]][,"ml13e"]) 
-table(NGAfiles[[14]]$ml13e)
-
-# U5 medical treatment for fever list for 2008, 2010, 2013, 2015, 2018
-comboACT.list <- list(NGAfiles[[8]], NGAfiles[[11]], NGAfiles[[14]], NGAfiles[[17]], NGAfiles[[20]])
-key.comboACT<-list(key_list[[3]], key_list[[4]], key_list[[5]], key_list[[6]], key_list[[7]])
-
+cm.ls[[2]][,"ml13e"] <-recoder(cm.ls[[2]][,"ml13e"]) 
+table(cm.ls[[2]]$ml13e)
 
 # key datasets and dhs/mis datasets are joined  
-comboACT.list <-map2(comboACT.list,key.comboACT, left_join) #medfever datasets 
-
-comboACT.list <- lapply(comboACT.list, subset, b5 == "1" & h22 == "1")
+NGAshplist<- NGAshplist[-c(1, 2)]
+NGA_ID <- lapply(NGAshplist, "[[", "DHSCLUST")
+key_list <- key_list[-c(1, 2)]
+key_list <- Map(cbind, key_list, v001 = NGA_ID)
+comboACT.list <- map2(cm.ls, key_list, left_join)
+comboACT.list <- lapply(comboACT.list, subset, b5 == 1 & h22 == 1)
 
 
 
@@ -40,12 +42,12 @@ comboACT.list[[5]]<-dataclean(comboACT.list[[5]], ml13e, v005, 'ml13e', 'comboAC
 
 comboACT.svyd18 <- svydesign.fun(comboACT.list[[5]])
 
-svymean(comboACT.list[[5]]$comboACT, comboACT.svyd18)
-
-table(comboACT.list[[5]]$b19)
-
+# svymean(comboACT.list[[5]]$comboACT, comboACT.svyd18)
+# 
+# table(comboACT.list[[5]]$b19)
+head(rep_DS)
 #generate LGA estimates 
-comboACT_pre_18_LGA <- result.fun('comboACT', 'State','num_p', design=comboACT.svyd18)
+comboACT_pre_18_LGA <- result.fun('comboACT', 'repDS',design=comboACT.svyd18, data =comboACT.list[[5]])
 head(comboACT_pre_18_LGA)
 
 # comboACT_pre_18_LGA_v2 <- comboACT_pre_18_LGA %>% 
@@ -55,28 +57,34 @@ head(comboACT_pre_18_LGA)
 # 
 # write.csv(comboACT_pre_18_LGA_v2, "results/urbanvsrural/2018_ACTstate.csv")
 
-#next join each LGA to their repDS 
 
-comboACT_pre_18_LGA <- rep_DS %>% left_join(comboACT_pre_18_LGA)
-head(comboACT_pre_18_LGA)
 
-#generate repDS estimates and change variable names 
-comboACT_pre_18_repDS <- result.fun('comboACT', 'repDS','num_p', design=comboACT.svyd18)
-head(comboACT_pre_18_repDS)
+LGA_sf <- st_as_sf(LGAshp) %>%  as_tibble() %>% dplyr::select(LGA, State)
+head(LGA_sf)
 
-comboACT_pre_18_repDS <- comboACT_pre_18_repDS %>% dplyr::select(repDS, comboACT_repDS = comboACT,
-                         se_repDS = se, Num_repDS = `Number of Participants`)
+repDS_LGA<- rep_DS %>% left_join(LGA_sf)
+head(repDS_LGA)
 
-head(comboACT_pre_18_repDS)
+ACT_18_repDS <- repDS_LGA %>%  left_join(comboACT_pre_18_LGA)
+head(ACT_18_repDS)
 
-#Now combine LGA files with LGA level estimates with repDS estimates 
-comboACT_18_LGA_repDS <- comboACT_pre_18_LGA %>% left_join(comboACT_pre_18_repDS) %>% 
-  mutate(comboACT = ifelse(comboACT =="0"| comboACT == "1" |is.na(comboACT), 
-                           comboACT_repDS, comboACT),
-         ci_l = comboACT - (1.96 * se_repDS), ci_u = comboACT + (1.96 * se_repDS)) %>%  
-  mutate(ci_l = ifelse(ci_l < 0, 0, ci_l))
-
-head(comboACT_18_LGA_repDS)
+# #generate repDS estimates and change variable names 
+# comboACT_pre_18_repDS <- result.fun('comboACT', 'repDS','num_p', design=comboACT.svyd18)
+# head(comboACT_pre_18_repDS)
+# 
+# comboACT_pre_18_repDS <- comboACT_pre_18_repDS %>% dplyr::select(repDS, comboACT_repDS = comboACT,
+#                          se_repDS = se, Num_repDS = `Number of Participants`)
+# 
+# head(comboACT_pre_18_repDS)
+# 
+# #Now combine LGA files with LGA level estimates with repDS estimates 
+# comboACT_18_LGA_repDS <- comboACT_pre_18_LGA %>% left_join(comboACT_pre_18_repDS) %>% 
+#   mutate(comboACT = ifelse(comboACT =="0"| comboACT == "1" |is.na(comboACT), 
+#                            comboACT_repDS, comboACT),
+#          ci_l = comboACT - (1.96 * se_repDS), ci_u = comboACT + (1.96 * se_repDS)) %>%  
+#   mutate(ci_l = ifelse(ci_l < 0, 0, ci_l))
+# 
+# head(comboACT_18_LGA_repDS)
 
 
 

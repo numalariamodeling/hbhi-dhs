@@ -1,9 +1,11 @@
 x <- c("tidyverse", "survey", "haven", "ggplot2", "purrr", "summarytools", "stringr", "sp", "rgdal", "raster",
        "lubridate", "RColorBrewer","sf", "shinyjs", "tmap", "knitr", "labelled", "plotrix", "arules", "foreign",
-       "fuzzyjoin", "splitstackshape")
+       "fuzzyjoin", "splitstackshape", "ggpubr")
 
 lapply(x, library, character.only = TRUE) #applying the library function to packages
 
+# smoothing, printing, plotting, mapping, saving 
+library(INLA); library(spdep)
 
 options(survey.lonely.psu="adjust") # this option allows admin units with only one cluster to be analyzed
 
@@ -54,6 +56,11 @@ recoder.wealth <- function(data, col){
   mutate(data, !!name_new := ifelse(!!col < 4, 0, 1))
 }
 
+# recoder <- function(data, col){
+#   name_new <- paste0(quo_name(col), "_new")
+#   mutate(data, !!name_new := ifelse(!!col == 0, 0, 1))
+# }
+
 recoder.gen <- function(data, col){
   name_new <- paste0(quo_name(col), "_new")
   mutate(data, !!name_new := ifelse(!!col > 7, 0, ifelse(!!col == 0, 0, 1)))
@@ -64,7 +71,7 @@ recoder.ml101 <- function(data){
 }
 
 recoder <- function(x){
-  ifelse(x > 6, NA,ifelse(x == 0, 0, 1))
+ifelse(x > 6, NA,ifelse(x == 0, 0, 1))
 }
 
 recoder.pfpr <- function(x){
@@ -233,16 +240,16 @@ result.clu.fun.para <- function(var, var1, var2, var3, design, data) {
 
 
 #generating results and table function with estimates 
-result.fun<- function(var, var1, design, data, year) {
-  
-  p_est<-svyby(formula=make.formula(var), by=make.formula(var1), FUN=svymean, design, svyciprop, method ='logit', levels=0.95, vartype= "se", na.rm=T) 
+result.fun<- function(var, var1, design, data) { #year
+  year <- unique(na.omit(data$v007))
+  p_est<-svyby(formula=make.formula(var), by=make.formula(var1), FUN=svymean, design, na.rm=T) # svyciprop, method ='logit', levels=0.95, vartype= "se"
   
   # num_est<-svyby(formula=make.formula(var2), by=make.formula(var1), FUN=svytotal, design, na.rm=T)%>% 
   #   dplyr:: select(-se)%>% mutate(num_p = round(num_p, 0))
   
   # p_est%>%left_join(num_est)%>% rename(`Number of Participants` = num_p)
   
-  year <- data.frame(year = unique(data[,year]))
+  #year <- data.frame(year = unique(data[,year]))
   
   cbind(p_est, year)
   
@@ -269,7 +276,7 @@ result.clu.fun<- function(var, var1, design, data, year) {
 
 #over function 
 over.fun <- function(df) {
-  over(SpatialPoints(coordinates(df),proj4string = df@proj4string), LGAshp)
+  sp::over(SpatialPoints(coordinates(df),proj4string = df@proj4string), LGAshp)
 }
 
 
@@ -426,4 +433,66 @@ clean.xls <- function(data){
   names(y) <-y[2, ]
   y <- y[c(7,8, 9), ]
   y <- y %>% fill(cat)
+}
+
+
+
+# ACT functions 
+
+generate.ACT.state_LGA_repDS <- function(df, var){
+  df1<-dataclean(df, ml13e, v005, 'ml13e', 'comboACT')  
+  svyd <- svydesign.fun(df1)
+  #generate LGA estimates 
+  df2 <- result.fun('comboACT', var,design=svyd, data =df1)  %>% fill(year, .direction = "updown")
+  if(var == "LGA"){
+  df2 <- df2 %>% mutate(LGA = case_when(LGA == "kiyawa"~ "Kiyawa", LGA == "kaita" ~"Kaita", TRUE ~ LGA)) %>% fill(year, .direction = "updown")
+  }else{
+    print("no name corrections for state, repDs or regiona estimates")
+  }
+  repDS_LGA %>% left_join(df2)
+}
+
+
+
+
+ACT.fun_region <- function(df){
+  df1<-dataclean(df, ml13e, v005, 'ml13e', 'comboACT')  
+  svyd <- svydesign.fun(df1)
+  #generate LGA estimates 
+  df2 <- result.fun('comboACT', 'v024',design=svyd, data =df1)
+  repDS_region %>%  left_join(df2)
+}
+
+
+
+
+
+generate_logit  <- function(data) {
+  data%>%mutate(logit_ACT=ifelse(!is.na(comboACT),logit(comboACT),NA),
+                  var_logit_ACT=(se^2)/(comboACT^2*(1-comboACT)^2),
+                  # var_logit_obese=ifelse(se==0,NA,var_logit_obese),
+                  var_logit_ACT=ifelse(se<0.00001,NA,var_logit_ACT),
+                  logit_ACT=ifelse(is.na(var_logit_ACT),NA,logit_ACT))%>% fill(year, .direction = "updown")
+}
+  
+generate_smooth_values <- function(dat){
+    year <- unique(dat$year)
+    mod2 <- inla(smoothing.model.2,
+                 family = "gaussian",
+                 data =dat,
+                 control.predictor=list(compute=TRUE),
+                 control.compute=list(cpo=TRUE,dic=TRUE,waic=T,config=T),
+                 control.family=list(hyper=list(prec=list(initial=log(1),fixed=TRUE))),
+                 scale=prec)
+    cbind(mod2, year)
+}
+  
+# handy functions for transforming the data
+logit<-function(x){
+  log(x/(1-x))
+}
+
+
+expit<-function(x){
+  exp(x)/(1+exp(x))
 }
