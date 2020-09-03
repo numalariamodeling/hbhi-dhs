@@ -26,5 +26,5 @@ fin_df <- bind_rows(df_all, df_baseline) %>% group_by(State) %>%
 
          
 
-write_csv(fin_df, file.path(WorkDir, "/2020_to_2030_v2/percent_change_States_U5_PfPR_All_age_incidence.csv"))
+write_csv(fin_df, file.path(ProcessDir, "/percent_change_States_U5_PfPR_All_age_incidence.csv"))
 

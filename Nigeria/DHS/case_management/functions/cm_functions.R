@@ -125,3 +125,6 @@ expit<-function(x){
 over.fun <- function(df) {
   sp::over(SpatialPoints(coordinates(df),proj4string = df@proj4string), LGAshp)
 }
+
+
+

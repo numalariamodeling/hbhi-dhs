@@ -1,5 +1,9 @@
 # This script generates CM estimates from 4 DHS surveys at the LGA level, State, representative DHS level and at the geopolitical level 
 
+dir.create(file.path(ResultDir, "case_management"), showWarnings = TRUE)
+print_path <- file.path(ResultDir, "case_management")
+
+
 if (Variable == "CM"){
   cm.ls <-read.files( ".*NGKR.*\\.DTA", DataDir, read_dta)
   cm.ls <- cm.ls[-c(1, 2)]
@@ -30,6 +34,8 @@ if (Variable == "CM"){
       var <- list("State")
       ACT_State <- map2(comboACT.list,var, generate.ACT.state_LGA_repDS)
       fin_df_state <- plyr::ldply(ACT_State, rbind)
+      state_sum <- fin_df_state %>%  distinct(State, comboACT, se, year)
+      state_ls <- list(CM_State_DHS_2008_10 = state_sum, CM_State_with_LGA_DHS_2008_10 = fin_df_state)
       
     }else if(subVariable == "repDS"){
       print("computing raw case management coverage estimates at the representative DS-level for years 2008, 2010, 2013, 2015 & 2018")
@@ -57,7 +63,7 @@ if (Variable == "CM"){
 
 
 
-if (smoothing == TRUE) {
+if (smoothing == TRUE & subVariable == "LGA") {
   #smoothing 
   # adding a row number to the shape2 object, will be handy for plotting later on
   # smoothing, printing, plotting, mapping, saving 
@@ -93,7 +99,7 @@ if (smoothing == TRUE) {
   #setting up the spatial model priors
   a<-1
   b<-5e-05
-  if (type == "space"){
+  if (smoothing_type == "space"){
     print("generating case management estimates for spatial model for years 2008, 2010, 2013, 2015 & 2018")
     # model formulation #
     smoothing.model.2 <- outcome ~ f(row_num, model="bym",graph=mat, param=c(a,b)) 
@@ -111,7 +117,7 @@ if (smoothing == TRUE) {
     # combine list 
     fin_df_smooth_LGA <- plyr::ldply(fin_df, rbind)
     
-  }else if (type == "space-time"){
+  }else if (smoothing_type == "space-time"){
     print("generating case management estimates for space-time model for years 2008, 2010, 2013, 2015 & 2018")
     ACT_logit_combined <- plyr::ldply(ACT_logit, rbind)
     
@@ -141,101 +147,80 @@ if (smoothing == TRUE) {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-#state values 
-
-State_raw_coverage <- df_space_time %>% group_by(State, year) %>%  summarise(ACT = mean(comboACT, na.rm=TRUE))
-State_space_smooth_coverage <- fin_df_smooth_LGA %>% group_by(State, year) %>%  summarise(ACT = mean(saep.est, na.rm=TRUE))
-State_space_time_coverage <- df_space_time %>% group_by(State, year) %>%  summarise(ACT = mean(saep.est, na.rm=TRUE))
-head(State_space_time_coverage)
-
-
-
-
 #plots
 
-rep_DS_plot<- ggplot(fin_df, aes(x = year, y = comboACT, group = LGA)) + 
-  geom_line(color = "blue") +
-  xlab('Time') +
-  ylab('ACT coverage averaged by repDS')
-
-State_plot<- ggplot(fin_df_state, aes(x = year, y = comboACT, group = LGA)) + 
-  geom_line(color = "blue") +
-  xlab('Time') +
-  ylab('ACT coverage averaged by State')+ 
-  labs(caption="some States had NA values")
-
-region_plot<- ggplot(fin_df_region, aes(x = year, y = comboACT, group = LGA)) + 
-  geom_line(color = "blue") +
-  xlab('Time') +
-  ylab('ACT coverage averaged by geopolitical zones')
-
-
-LGA_plot<- ggplot(df_space_time, aes(x = year, y = comboACT, group = LGA)) + 
-  geom_line(color = "blue") +
-  xlab('Time') +
-  ylab('ACT coverage by LGA')+
-  labs(caption = "No smoothing, 92 missing values")
-
-LGA_smooth_space<- ggplot(fin_df_smooth_LGA, aes(x = year, y =  saep.est, group = LGA)) + 
-  # geom_point() +
-  geom_line(color = "blue")+
-  xlab('Time') +
-  ylab('ACT coverage by LGA')+ 
-  labs(caption = "smoothed across space")
-
-LGA_smooth_space_time<- ggplot(df_space_time, aes(x = year, y = saep.est , group = LGA)) + 
-  # geom_point() +
-  geom_line(color = "blue")+
-  xlab('Time') +
-  ylab('ACT coverage by LGA')+
-  labs(caption = "smoothed across space and time")
-
-# state plots 
-
-state_plot<- ggplot(State_raw_coverage, aes(x = year, y = ACT, group = State)) + 
-  geom_line(color = "blue") +
-  xlab('Time') +
-  ylab('ACT coverage by State')+
-  labs(caption = "No smoothing, 92 LGA missing values")
-
-
-state_smooth_plot <- ggplot(State_space_smooth_coverage, aes(x = year, y = ACT, group = State)) + 
-  geom_line(color = "blue") +
-  xlab('Time') +
-  ylab('ACT coverage by State')+
-  labs(caption = "smoothed across space")
-
-state_smooth_space_plot <- ggplot(State_space_time_coverage, aes(x = year, y = ACT, group = State)) + 
-  geom_line(color = "blue") +
-  xlab('Time') +
-  ylab('ACT coverage by State')+
-  labs(caption = "smoothed across space and time")
-
-cm_hist_sim_path <- "simulation_inputs/projection_csvs/2010_2020_LGA_intervention_files/ACT"
-
-#saving plot 
-pdf(file=paste0(ProjectDir, cm_hist_sim_path, "CM_plots_smooth_state.pdf"))
-ggarrange(state_plot,state_smooth_plot, state_smooth_space_plot,
-          labels = c("A", "B", "C"),
-          ncol = 2, nrow = 2)
-dev.off()
+if (plot == TRUE & subVariable == "LGA" & smoothing == FALSE){
+  LGA_plot<- ggplot(df_space_time, aes(x = year, y = comboACT, group = LGA)) + 
+    geom_line(color = "blue") +
+    xlab('Time') +
+    ylab('ACT coverage by LGA')+
+    labs(caption = "No smoothing, 92 missing values")
+  
+}else if (plot == TRUE & subVariable == "LGA" & smoothing == TRUE & smoothing_type == "space"){
+  LGA_smooth_space<- ggplot(fin_df_smooth_LGA, aes(x = year, y =  saep.est, group = LGA)) + 
+    # geom_point() +
+    geom_line(color = "blue")+
+    xlab('Time') +
+    ylab('ACT coverage by LGA')+ 
+    labs(caption = "smoothed across space")
+  
+}else if (plot == TRUE & subVariable == "LGA" & smoothing == TRUE & smoothing_type == "space-time"){
+  LGA_smooth_space_time<- ggplot(df_space_time, aes(x = year, y = saep.est , group = LGA)) + 
+    # geom_point() +
+    geom_line(color = "blue")+
+    xlab('Time') +
+    ylab('ACT coverage by LGA')+
+    labs(caption = "smoothed across space and time")
+  
+}else if (plot == TRUE & subVariable == "State"){
+  State_plot<- ggplot(state_sum, aes(x = year, y = comboACT, group = State)) + 
+    geom_line(color = "blue") +
+    xlab('Time') +
+    ylab('ACT coverage by State')
+  
+}else if (plot == TRUE & subVariable == "repDS"){
+  rep_DS_plot<- ggplot(fin_df, aes(x = year, y = comboACT, group = LGA)) + 
+    geom_line(color = "blue") +
+    xlab('Time') +
+    ylab('ACT coverage averaged by repDS')
+  
+}else if (plot == TRUE & subVariable == "region"){
+  region_plot<- ggplot(fin_df_region, aes(x = year, y = comboACT, group = LGA)) + 
+    geom_line(color = "blue") +
+    xlab('Time') +
+    ylab('ACT coverage averaged by geopolitical zones')
+  
+}else {
+  print("values will not be plotted")
+}
 
 
 
 
 
 # map 
+
+#state 
+if (plot == TRUE & subVariable == "State"){
+  state_sum <- state_sum %>%  mutate(State = case_when(grepl("Akwa", State) ~"Akwa Ibom", TRUE ~ State))
+  state_split <- split(state_sum, state_sum$year)
+  state_sf <- state_sf %>% 
+    mutate(State = case_when(State == "Nassarawa" ~ "Nasarawa", 
+                             grepl("Akwa", State) ~ "Akwa Ibom", 
+                             TRUE ~ State))
+  state_map_ls <- list(state_sf)
+  join_state <- Map(function(x, y) left_join(x, y, by = "State"), state_map_ls, state_split)
+  
+  map_val <- list("comboACT")
+  var<-list("ACT averaged by State")
+  maps <- pmap(list(join_state, map_val, var), map_fun)
+  arrange_maps <- do.call(tmap_arrange, maps)
+  
+}else if {
+  
+}
+
+
 
 GPZ_no <- c(1, 2, 3, 4, 5, 6)
 GPZ_value <- c("North Central", "North East", "North West", "South East", "South South", "South West")
@@ -324,4 +309,19 @@ df <- df_clean %>% left_join(cm_sim_file, by=c("LGA", "year")) %>%
 head(df)
 
 write.csv(df,file.path(ProjectDir,cm_hist_sim_path, "HS_by_LGA_v5.csv"))
+
+
+if (SAVE == TRUE & subVariable == "LGA") {
+  write_csv()
+  
+}else if (SAVE == TRUE & subVariable == "State"){
+  mapply(write_csv, state_ls, path=paste0(print_path,"/",names(state_ls), '.csv'))
+  pdf(file=paste0(print_path, "/", "CM_state_plots_DHS_2008_2018.pdf"))
+  plot(State_plot)
+  dev.off()
+  print("job saved in case management directory within results directory")
+  
+}else {
+  print("job was not saved.check file paths are correct")
+}
 
