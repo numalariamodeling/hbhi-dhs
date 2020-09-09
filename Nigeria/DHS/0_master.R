@@ -4,7 +4,6 @@
 ### ==========================================================================================
 rm(list = ls())
 
-SAVE <- TRUE
 
 ## -----------------------------------------
 ### Directories
@@ -35,22 +34,8 @@ if ("mambrose" %in% user) {
 ## -----------------------------------------
 ### Required functions and settings
 ## -----------------------------------------
-source(file.path(SrcDir, "generic_functions", "map_fun.R"))
+source(file.path(SrcDir, "generic_functions", "DHS_fun.R"))
 
-
-
-
-## -----------------------------------------
-### Case Management  
-## -----------------------------------------
-Variable <- "CM"
-subVariable <-"State" # for CM options (LGA, State, repDS, region)
-smoothing <- TRUE 
-smoothing_type <- "space-time" #other option (space)
-plot <- TRUE 
-source(file.path(SrcDir, "case_management", "functions", "cm_functions.R"))
-#source(file.path(SrcDir, "case_management", "CM_DHS_estimates.R"))
- 
 ## -----------------------------------------
 ### Other files 
 ## -----------------------------------------
@@ -64,10 +49,35 @@ colnames(state_sf)[4] <- "State"
 LGAshp <- readOGR(file.path(DataDir,"Nigeria_LGAs_shapefile_191016"), layer ="NGA_LGAs", use_iconv=TRUE, encoding= "UTF-8")
 LGA_clean_names <- clean_LGA_2(file.path(DataDir,"Nigeria_LGAs_shapefile_191016"), file.path(BinDir,"names/LGA_shp_pop_names.csv"))
 
-# cluster locations 
-NGAshplist<-read.files("*FL.*\\.shp$", DataDir, shapefile)
-key_list <- lapply(NGAshplist, over.fun)
+
 
 # rep DS file
 rep_DS <- read.csv(file.path(BinDir, "rep_DS/representative_DS_orig60clusters.csv")) %>% dplyr::select(-X)
+
+
+
+
+## -----------------------------------------
+### Variables  
+## -----------------------------------------
+var_df <- read.csv(file.path(SrcDir, "analysis_variables_requirements.csv"))
+for (i in 1:nrow(var_df)){
+      if (var_df[, "variable_to_run"][i] == TRUE){
+      Variable <-  var_df[, "Variable"][i]
+      subVariable <- var_df[, "subVariable"][i]
+      smoothing <- var_df[, "smoothing"][i]
+      smoothing_type <- var_df[, "smoothing_type"][i]
+      plot <- var_df[, "plot"][i]
+      SAVE <- var_df[, "SAVE"][i]
+      
+      # cluster locations 
+      NGAshplist<-read.files("*FL.*\\.shp$", DataDir, shapefile)
+      key_list <- lapply(NGAshplist, over.fun)
+      
+      source(file.path(SrcDir, var_df[, "fun_path"][i]))
+      source(file.path(SrcDir, var_df[, "main_path"][i]))
+      }
+}
+
+# check why there are holes in state map 
 

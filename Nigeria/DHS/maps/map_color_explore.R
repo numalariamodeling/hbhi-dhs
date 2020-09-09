@@ -37,16 +37,27 @@ head(scenarios)
 LGA_scenarios <- left_join(LGA_sf, scenarios)
 
 map <- tm_shape(LGA_scenarios)+
-  tm_polygons(col = "mix_plan_no_PAAR", palette = "viridis")+ 
+  tm_polygons(col = "Questions", palette = "viridis")+ 
   tmap_options(max.categories = 37)+
   tm_layout(legend.show=T)
-tmap_save(tm =map, filename = paste0(print_path,"/Nigeria_no_PAAR.pdf"), width=13, height=13, units ="in", asp=0,
+tmap_save(tm =map, filename = paste0(print_path,"/Nigeria_questions.pdf"), width=13, height=13, units ="in", asp=0,
+          paper ="A4r", useDingbats=FALSE)
+
+
+#repDS map
+
+LGA <- left_join(LGA_clean_names, rep_DS)
+
+map <- tm_shape(LGA)+
+  tm_polygons(col = "repDS", palette = "Accent")+ 
+  tmap_options(max.categories = 37)+
+  tm_layout(legend.show=T)
+tmap_save(tm =map, filename = paste0(print_path,"/Nigeria_repDS_map.pdf"), width=13, height=13, units ="in", asp=0,
           paper ="A4r", useDingbats=FALSE)
 
 
 
-
-pdf(file=paste0(print_path,"/", "Nigeria_state_no_uniform.pdf"))
+pdf(file=paste0(print_path,"/", "Nigeria.pdf"))
 plot(Stateshp, col = "seagreen3")
 dev.off()
 
