@@ -1,6 +1,9 @@
 ### ==========================================================================================
-### HBHI modelling - Nigeria: Estimating intervention coverage by LGA 
-### August 2020, IDO
+### HBHI modeling - Nigeria: Estimating intervention coverage by LGA 
+### This script generates DHS estimates at various levels for variables indicated in the analysis_variables_requirements.csv. 
+### In analysis_variables_requirements.csv make sure that the variable_to_run column is set to TRUE for the variable and subvariable of interest 
+### Check file paths and make sure they are correct. That is Box folders are correctly linked, as well as the data and script directory 
+### September 2020, Ifeoma Doreen Ozodiegwu
 ### ==========================================================================================
 rm(list = ls())
 
@@ -24,8 +27,9 @@ if ("mambrose" %in% user) {
   NGDir <-file.path(NuDir, "data", "nigeria_dhs",  "data_analysis")
   DataDir <-file.path(NGDir, "data")
   ResultDir <-file.path(NGDir, "results")
-  SrcDir <- file.path(NGDir, "src", "DHS")
   BinDir <- file.path(NGDir, "bin")
+  SrcDir <- file.path(NGDir, "src", "DHS")
+  VarDir <- file.path(SrcDir, "1_variables_scripts")
   ProjectDir <- file.path(NuDir, "projects", "hbhi_nigeria")
   SimDir <- file.path(ProjectDir, 'simulation_input')
 }
@@ -34,7 +38,7 @@ if ("mambrose" %in% user) {
 ## -----------------------------------------
 ### Required functions and settings
 ## -----------------------------------------
-source(file.path(SrcDir, "generic_functions", "DHS_fun.R"))
+source(file.path(VarDir, "generic_functions", "DHS_fun.R"))
 
 ## -----------------------------------------
 ### Other files 
@@ -45,6 +49,7 @@ stateshp <- readOGR(file.path(DataDir,"gadm36_NGA_shp"), layer ="gadm36_NGA_1", 
 state_sf <- st_as_sf(stateshp)
 colnames(state_sf)[4] <- "State"
 
+
 # LGA shape file
 LGAshp <- readOGR(file.path(DataDir,"Nigeria_LGAs_shapefile_191016"), layer ="NGA_LGAs", use_iconv=TRUE, encoding= "UTF-8")
 LGA_clean_names <- clean_LGA_2(file.path(DataDir,"Nigeria_LGAs_shapefile_191016"), file.path(BinDir,"names/LGA_shp_pop_names.csv"))
@@ -53,7 +58,6 @@ LGA_clean_names <- clean_LGA_2(file.path(DataDir,"Nigeria_LGAs_shapefile_191016"
 
 # rep DS file
 rep_DS <- read.csv(file.path(BinDir, "rep_DS/representative_DS_orig60clusters.csv")) %>% dplyr::select(-X)
-
 
 
 
@@ -74,8 +78,8 @@ for (i in 1:nrow(var_df)){
       NGAshplist<-read.files("*FL.*\\.shp$", DataDir, shapefile)
       key_list <- lapply(NGAshplist, over.fun)
       
-      source(file.path(SrcDir, var_df[, "fun_path"][i]))
-      source(file.path(SrcDir, var_df[, "main_path"][i]))
+      source(file.path(VarDir, var_df[, "fun_path"][i]))
+      source(file.path(VarDir, var_df[, "main_path"][i]))
       }
 }
 
