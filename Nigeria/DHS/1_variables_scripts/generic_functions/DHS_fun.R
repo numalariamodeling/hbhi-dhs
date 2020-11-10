@@ -1,7 +1,7 @@
 #Make sure we have the right packages
 list.of.packages <- c("tidyverse", "survey", "haven", "ggplot2", "purrr",  "stringr", "sp", "rgdal", "raster",
                       "lubridate", "RColorBrewer","sf", "shinyjs", "tmap", "knitr", "labelled", "plotrix", "arules", "foreign",
-                      "fuzzyjoin", "splitstackshape","ggpubr")
+                      "fuzzyjoin", "splitstackshape","ggpubr", "nngeo")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages)
 
@@ -14,7 +14,7 @@ if (!("INLA" %in% installed.packages()[, 'Package'])){
 
 x <- c("tidyverse", "survey", "haven", "ggplot2", "purrr", "stringr", "sp", "rgdal", "raster",
        "lubridate", "RColorBrewer","sf", "shinyjs", "tmap", "knitr", "labelled", "plotrix", "arules", "foreign",
-       "fuzzyjoin", "splitstackshape", "ggpubr")
+       "fuzzyjoin", "splitstackshape", "ggpubr", "nngeo")
 
 lapply(x, library, character.only = TRUE) #applying the library function to packages
 
@@ -57,6 +57,8 @@ svydesign.fun <- function(filename){
 result.fun<- function(var, var1, design, data) { #year
   year <- unique(na.omit(data$v007))
   p_est<-svyby(formula=make.formula(var), by=make.formula(var1), FUN=svymean, design, na.rm=T) # svyciprop, method ='logit', levels=0.95, vartype= "se"
+  
+  
   
   # num_est<-svyby(formula=make.formula(var2), by=make.formula(var1), FUN=svytotal, design, na.rm=T)%>% 
   #   dplyr:: select(-se)%>% mutate(num_p = round(num_p, 0))
@@ -112,11 +114,24 @@ map_fun_2 <- function(shpfile, map_val, var) {
   year <- unique(na.omit(shpfile$year))
   tm_shape(shpfile) + #this is the health district shapfile with LLIn info
     tm_polygons(col = map_val, textNA = "No data", 
-                title = "", palette = "seq", breaks=c(0, 1.5, 2.5, 3.5, 4.5, 5.5, 6))+
+                title = "", palette = "seq", breaks=c(0, 0.2, 
+                                                      0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0))+
     tm_layout(title =paste0(year, " ", var, " ", "dhs"),
-              aes.palette = list(seq="RdYlBu")) 
+              aes.palette = list(seq="-RdYlBu")) 
 }
 
+
+
+
+map_fun_3 <- function(shpfile, map_val, var) {
+  year <- unique(na.omit(shpfile$year))
+  tm_shape(shpfile) + #this is the health district shapfile with LLIn info
+    tm_polygons(col = map_val, textNA = "No data", 
+                title = "", palette = "seq", breaks=c(1, 2, 
+                                                      3, 4, 5, 6, 7, 8, 9, 10))+
+    tm_layout(title =paste0(year, " ", var, " ", "dhs"),
+              aes.palette = list(seq="-PuRd")) 
+}
 # handy functions for transforming the data
 logit<-function(x){
   log(x/(1-x))

@@ -13,10 +13,12 @@ ACT.fun_region <- function(df){
 
 
 generate.ACT.state_LGA_repDS <- function(df, var){
-  df1<-dataclean(df, ml13e, v005, 'ml13e', 'comboACT')  
+  df1<-dataclean(comboACT.list[[2]], ml13e, v005, 'ml13e', 'comboACT')  
   svyd <- svydesign.fun(df1)
   #generate LGA estimates 
   df2 <- result.fun('comboACT', var,design=svyd, data =df1) 
+  # df1$comboACT <- as.factor(df1$comboACT)
+  # df2 <- result.fun('comboACT', "State",design=svyd, data =df1) 
   if(var == "LGA"){
     df2 <- df2 %>% mutate(LGA = case_when(LGA == "kiyawa"~ "Kiyawa", LGA == "kaita" ~"Kaita", TRUE ~ LGA)) 
   }else{

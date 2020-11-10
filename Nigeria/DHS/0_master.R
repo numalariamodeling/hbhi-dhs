@@ -56,6 +56,7 @@ LGA_clean_names <- clean_LGA_2(file.path(DataDir,"Nigeria_LGAs_shapefile_191016"
 
 
 
+
 # rep DS file
 rep_DS <- read.csv(file.path(BinDir, "rep_DS/representative_DS_orig60clusters.csv")) %>% dplyr::select(-X)
 
@@ -64,6 +65,8 @@ rep_DS <- read.csv(file.path(BinDir, "rep_DS/representative_DS_orig60clusters.cs
 ## -----------------------------------------
 ### Variables  
 ## -----------------------------------------
+
+library(nngeo)
 var_df <- read.csv(file.path(SrcDir, "analysis_variables_requirements.csv"))
 for (i in 1:nrow(var_df)){
       if (var_df[, "variable_to_run"][i] == TRUE){
@@ -76,12 +79,14 @@ for (i in 1:nrow(var_df)){
       
       # cluster locations 
       NGAshplist<-read.files("*FL.*\\.shp$", DataDir, shapefile)
-      key_list <- lapply(NGAshplist, over.fun)
+      NGAshplist <- lapply(NGAshplist, st_as_sf)
+      key_list <- lapply(NGAshplist, function(x) x %>%st_join(LGA_clean_names, join = st_nn, maxdist = 10000))
       
       source(file.path(VarDir, var_df[, "fun_path"][i]))
       source(file.path(VarDir, var_df[, "main_path"][i]))
       }
 }
+
 
 # check why there are holes in state map 
 

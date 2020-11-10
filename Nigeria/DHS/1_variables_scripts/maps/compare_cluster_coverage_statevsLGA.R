@@ -3,11 +3,13 @@ library(sf)
 
 
 plot(stateshp)
-plot(NGAshplist[[7]], add= TRUE)
 
-pts <- st_as_sf(NGAshplist[[7]])
-LGA <- st_as_sf(LGAshp)
-head(pts)
+
+pts <- NGAshplist[[8]]
+key <- key_list[[8]] %>%dplyr::select(DHSCLUST, LGA) %>%  group_by(LGA) %>%  summarise(num_cluster =n()) %>%  drop_na() %>% dplyr::select(-geometry) %>% 
+head(key)
+LGA_cluster_num <- left_join(LGA_clean_names, key) %>%  mutate(cluster_cat = ifelse(num_cluster<=1|is.na(num_cluster), 1, NA))
+head(LGA_cluster_num, 10)
 
 # p2 = sf::st_join(pts, LGA, join = st_nn, maxdist = 10)
 # l = st_connect(pts, LGA)
@@ -16,19 +18,20 @@ head(pts)
 # plot(st_geometry(l), col = "red", lwd = 2, add = TRUE)
 
 map <- tm_shape(state_sf)+
-  tm_fill(col = "grey95")+ 
+  tm_fill(col = "grey80")+ 
   tm_borders(col = "grey40", lwd = 1, lty = "solid", alpha = 1)+
   tm_shape(pts)+ 
   tm_dots(size = 0.05, col = "red", border.col = "black")
   
 
-map_2 <- tm_shape(LGA)+
-  tm_fill(col = "grey95")+ 
+map_2 <- tm_shape(LGA_cluster_num )+
+  tm_fill(col = "cluster_cat")+ 
   tm_borders(col = "grey40", lwd = 1, lty = "solid", alpha = 1)+
   tm_shape(pts)+ 
   tm_dots(size = 0.05, col = "red", border.col = "black") 
 
 arrange_maps <- tmap_arrange(map, map_2)
+arrange_maps 
 
 tmap_save(tm =arrange_maps, filename = file.path(ProjectDir, "project_notes/publication/cluster_coverage_comparsion_statevsLGA_2018.pdf"), width=13, height=13, units ="in", asp=0,
                      paper ="A4r", useDingbats=FALSE)

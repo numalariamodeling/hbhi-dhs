@@ -213,13 +213,13 @@ if (plot == TRUE & subVariable == "LGA" & smoothing == FALSE){
 #state 
 
 if (plot == TRUE & subVariable == "State"){
-  fin_df <- fin_df %>%  mutate(State = case_when(grepl("Akwa", State) ~"Akwa Ibom"))
+  fin_df <- fin_df %>%  mutate(State = case_when(grepl("Akwa", State) ~"Akwa Ibom", TRUE ~ State))
   state_split <- split(fin_df, fin_df$year)
   state_sf <- state_sf %>% 
     mutate(State = case_when(State == "Nassarawa" ~ "Nasarawa", 
-                             grepl("Akwa", State) ~ "Akwa Ibom"))
+                             grepl("Akwa", State) ~ "Akwa Ibom", TRUE ~State))
   state_map_ls <- list(state_sf)
-  join_state <- Map(function(x, y) left_join(x, y, by = "State"), state_map_ls, state_split)
+  join_state <- Map(function(x, y) left_join(x, y, by = "State"), state_map_ls, state_split) 
   
   map_val <- list("comboACT")
   var<-list("ACT averaged by State")
@@ -231,9 +231,9 @@ if (plot == TRUE & subVariable == "State"){
 
 #LGA  
 }else if (plot == TRUE & subVariable == "LGA"){
-    LGA_split <- split(fin_df, fin_df$year)
+    #LGA_split <- split(fin_df, fin_df$year)
     LGA_map_ls <- list(LGA_clean_names)
-    join_LGA <- Map(function(x, y) left_join(x, y, by = "LGA"), LGA_map_ls, LGA_split)
+    join_LGA <- Map(function(x, y) left_join(x, y, by = "LGA"), LGA_map_ls, ACT_LGA)
     
     map_val <- list("comboACT")
     var<-list("ACT by LGA (raw values)")

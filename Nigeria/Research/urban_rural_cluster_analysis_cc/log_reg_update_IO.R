@@ -1,114 +1,113 @@
-rm(list=ls())
-
-#important to download the github version of tidyverse.Uncomment the script below to run
-#install.packages("devtools") #download devtools if is not available in your packages 
-#devtools::install_github("r-pkgs/usethis")
-
-#devtools::install_github("hadley/tidyverse")
-
-
-#Reading in the necessary packages 
+### ==========================================================================================
+### Urban-rural analysis- Nigeria: Logistic regression model to understand the determinants of malaria prevalence in urban and rural areas respectively 
+### This script is for descriptive analyses and generates odds ratios and predicted probabilities for urban and rural clusters from the DHS. 
+### Check file paths and make sure they are correct. That is Box folders are correctly linked, as well as the data and script directory 
+### September 2020, Ifeoma Doreen Ozodiegwu
+### ==========================================================================================
+rm(list = ls())
 
 
-list.of.packages <- c("caTools", "ggcorrplot", "hrbrthemes", "reshape", "caret", 
-                      "clusterSim", "gridExtra", "MASS", "effects", "pscl", "pROC", "car", "nnet", "reshape2", "AER", "MNLpred",
-                      "scales", "sjPlot", "sjlabelled", "sjmisc", "mapview", "geosphere")
-new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
-if(length(new.packages)) install.packages(new.packages)
+## -----------------------------------------
+### Directories
+## -----------------------------------------
+user <- Sys.getenv("USERNAME")
+if ("mambrose" %in% user) {
+  user_path <- file.path("C:/Users", user)
+  Drive <- file.path(gsub("[\\]", "/", gsub("Documents", "", Sys.getenv("HOME"))))
+  NuDir <- file.path(Drive, "NU-malaria-team")
+  NGDir <-file.path(NuDir, "data", "nigeria_dhs",  "data_analysis")
+  DataDir <-file.path(NGDir, "data")
+  ResultDir <-file.path(NGDir, "results")
+  SrcDir <- file.path(NGDir, "src", "DHS")
+  BinDir <- file.path(NGDir, "bin")
+} else {
+  Drive <- file.path(gsub("[\\]", "/", gsub("Documents", "", Sys.getenv("HOME"))))
+  NuDir <- file.path(Drive, "Box", "NU-malaria-team")
+  NGDir <-file.path(NuDir, "data", "nigeria_dhs",  "data_analysis")
+  DataDir <-file.path(NGDir, "data")
+  ResultDir <-file.path(NGDir, "results")
+  PlotDir <-file.path(ResultDir, "research_plots")
+  BinDir <- file.path(NGDir, "bin")
+  SrcDir <- file.path(NGDir, "src", "Research", "urban_rural_cluster_analysis_cc")
+  ProjectDir <- file.path(NuDir, "projects", "hbhi_nigeria")
+}
+
+#Read in functions 
+
+source(file.path(SrcDir, "functions", "log_reg_functions.R"))
 
 
-x <- c("tidyverse", "survey", "haven", "ggplot2", "purrr", "summarytools", "stringr", "sp", "rgdal", "raster",
-       "lubridate", "RColorBrewer","sf", "shinyjs", "tmap", "knitr", "labelled", "plotrix", "arules", "foreign",
-       "fuzzyjoin", "splitstackshape", "magrittr", "caTools", "ggcorrplot", "hrbrthemes", "reshape", "caret", 
-       "clusterSim", "gridExtra", "MASS", "effects", "pscl", "pROC", "car", "nnet", "reshape2", "AER", "MNLpred",
-       "scales", "sjPlot", "sjlabelled", "sjmisc", "geosphere")
-
-lapply(x, library, character.only = TRUE) #applying the library function to packages
+histogram <- T 
+type <- "urban/rural"
 
 
+# Read in data file 
+
+if(histogram == T) {
+    merged_df <- read.csv(file.path(DataDir, "Nigereia_2010_2018_clustered_final_dataset.csv"), header= TRUE)
 
 
-
-# set document path to current script path 
-setwd("C:/Users/ido0493/Box/NU-malaria-team/data/nigeria_dhs/data_analysis")
-
-#loading dataset
-#dhs2019 <- read.csv("allcluster_revised_kap_housing_quality.csv", header= TRUE)
-#mis2015 <- read.csv("mis_allcusters_housing_q.csv", header= TRUE)
-#mis2010 <- read.csv("mis2010_allcusters_housing_q.csv", header= TRUE)
-merged_df <- read.csv("data/Nigereia_2010_2018_clustered_final_dataset.csv", header= TRUE)
-
-table(merged_df$Rural_urban)
-
-#merged_df <- dplyr::bind_rows(dhs2019, mis2015, mis2010)
-
-
-urbandataset <- merged_df %>% filter(Rural_urban == 1)
-ruraldataset <- merged_df %>% filter(Rural_urban == 2)
-comineddataset <- merged_df
-
-
-#Exploratory data analysis (EDA)
-summary(merged_df)
-
-#selecting variables of interest. replace datafrom with cluster of interest
-df <- urbandataset[ ,colnames(urbandataset) 
-                    %in% c("wealth_2", "u5_prop", "net_access","preg","edu_a","net_use_u5", 
-                           "net_use_preg", "hh_size", "house_floor", "house_wall", 
-                           "house_roof", "housing_qua","ACT_use_u5", "pop_den",
+    df <- merged_df[ ,colnames(merged_df) 
+                    %in% c("wealth_2", "preg","edu_a","net_use_u5", 
+                           "net_use_preg", "hh_size", "ACT_use_u5",
                            "l_pop_den","p_test", "humidindex", "Rural_urban")]
+    
 
-colnames(df)
-summary(df2$humidindex)
-
-df2 <- df
-df2 <- df2 %>% mutate(scaled_hudix = scale(df2$humidindex, center = T))
-
-#Plotting Histograms
-
-ggfun <- function(dat, x.var, title){
-  x.var <- enquo(x.var)
-  title <- enquo(title) 
-  ggp <- ggplot(data = dat,
-                aes(x = !! x.var,)) +
-    ggtitle(title,)+
-    geom_histogram(bins = 30, color = "dimgray")
-  
-  return(ggp)
+    df <- df%>% mutate(scaled_hudix = scale(df$humidindex, center = T)) %>%  filter(ACT_use_u5 <= 1, preg <= 1) %>%  drop_na()
+    if(type!="combined"){
+      df_split <- split(df, df$Rural_urban)
+      df_split_long <- lapply(df_split, function(x) gather(x, key = "text", value = "value"))
+      new_labels <- c("% in higher wealth quintile", "% pregnant women", "% with higher education", "% U5 slept under a net",
+                      "% preg slept under net", "Household size", "% U5 that use ACT", "Population density",
+                      "Parasite prevalence", "Humidity index (HI)", "Residence", "Scaled HI") 
+      names(new_labels)<-c("wealth_2", "preg","edu_a","net_use_u5", 
+                           "net_use_preg", "hh_size", "ACT_use_u5",
+                           "l_pop_den","p_test", "humidindex", "Rural_urban", "scaled_hudix")
+      
+      histo_list <- lapply(df_split_long, histofun)
+      ggsave("urban_histograms.pdf", plot =histo_list[[1]], path=file.path(PlotDir, "histograms"))
+      ggsave("rural_histograms.pdf", plot =histo_list[[2]], path=file.path(PlotDir, "histograms"))
+      }else if(type == "combined"){
+      df_combo <- df %>%  gather(key = "text", value = "value")
+      new_labels <- c("% in higher wealth quintile", "% pregnant women", "% with higher education", "% U5 slept under a net",
+                      "% preg slept under net", "Household size", "% U5 that use ACT", "Population density",
+                      "Parasite prevalence", "Humidity index (HI)", "Residence", "Scaled HI") 
+      names(new_labels)<-c("wealth_2", "preg","edu_a","net_use_u5", 
+                           "net_use_preg", "hh_size", "ACT_use_u5",
+                           "l_pop_den","p_test", "humidindex", "Rural_urban", "scaled_hudix")
+      histo<- histofun(df_combo)
+      ggsave("combined_histograms.pdf", plot =histo, path=file.path(PlotDir, "histograms"))
+      }else{
+      print("dataset created but no plots")
+    }
+    
+    
+}else{
+  print("histograms will not be made")
 }
 
-colnames(df2)
 
-ggfun(dat = df2, x.var = p_test, title = "Malaria Transmission Intensisty")
-ggfun(dat = df2, x.var = wealth_2, title = "Prop. of High Wealth Quantile")
-ggfun(dat = df2, x.var = preg, title = "Prop. of Pregnant Women")
-ggfun(dat = df2, x.var = edu_a, title = "Prop. of Higher Education Attainment")
-ggfun(dat = df2, x.var = net_use_u5, title = "Prop. of U5 Net Use")
-ggfun(dat = df2, x.var = net_use_preg, title = "Prop. of Pregnant Women Net Use")
-ggfun(dat = df2, x.var = hh_size, title = "Household Size")
-ggfun(dat = df2, x.var = ACT_use_u5, title = "Prop. of U5 ACT Use")
-ggfun(dat = df2, x.var = l_pop_den, title = "population Density")
-ggfun(dat = df2, x.var = ave_kap, title = "Prop. Of Positive Knowledge, Attitude & Practice")
-ggfun(dat = df2, x.var = settlement_type, title = "Settlement Type")
+  
 
-#Independent variable
-#Boxplots
-par(mfrow=c(2,3))
-for (i in 1:(length(df2)-1)){
-  boxplot(x = df2[i], 
-          horizontal = TRUE, 
-          main = sprintf('Boxplot of the variable: %s', 
-                         colnames(df2[i])),
-          xlab = colnames(df2[i]))
-  
-  
-}
+
+
+
+#Independent variables
 
 #Plotting scatters
-plot.features <- melt(df2, "p_test")
-ggplot(plot.features, aes(value, p_test)) + 
-  geom_jitter() + 
-  facet_wrap(~variable, scales = "free")
+if(scatter = T){
+  df_list <-lapply(df_split,function(x) x[!(names(x) %in% c("scaled_hudix", "Rural_urban"))])
+  corr_ls<- lapply(df_list, function(x) ggpairs(x, title=paste("correlogram", names(x))))
+  ggsave("urban_correlation.pdf", plot =corr_ls[[1]], path=file.path(PlotDir, "correlations"))
+  ggsave("rural_correlation.pdf", plot =corr_ls[[2]], path=file.path(PlotDir, "correlations"))
+  cor_viz <-lapply(df_list, function(x) ggcorr(x, method = c("everything", "pearson")))
+  ggsave("urban_correlation_blocks.pdf", plot =cor_viz[[1]], path=file.path(PlotDir, "correlations"))
+  ggsave("rural_correlation_blocks.pdf", plot =cor_viz[[2]], path=file.path(PlotDir, "correlations"))
+}
+
+
+
+# this part is not updated 
 
 #Exploring logistic regeressions
 #creating prevelence classes

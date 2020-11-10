@@ -4,6 +4,7 @@
 #run seperately for RDT and micrscopy 
 # creating list of files with Pfpr data for 2010, 2015 & 2018 
 # pfpr.list <- list(NGAfiles[[12]], NGAfiles[[18]], NGAfiles[[21]])
+source(file.path(VarDir,"PfPR/functions/pfpr_functions.R"))
 
 if (Variable == "PfPR"){
   pfpr.ls <-read.files( ".*NGPR.*\\.DTA", DataDir, haven::read_dta)
@@ -14,7 +15,8 @@ if (Variable == "PfPR"){
   table(pfpr.ls[[1]][,"hml32"])
   NGAshplist<- NGAshplist[-c(1, 2, 3, 5)]  # key datasets and dhs/mis datasets are joined  
   NGA_ID <- lapply(NGAshplist, "[[", "DHSCLUST")#QA this 
-  key_list <- key_list[-c(1, 2, 3, 5)]
+  key_list <- key_list[-c(1, 2, 3, 5)] 
+  key_list <- lapply(key_list, st_drop_geometry)
   key_list <- Map(cbind, key_list, v001 = NGA_ID)
   #subsetting for microscopy (denominator -hh selected for hemoglobin, child slept there last night and have result for test)
   pfpr.ls <- lapply(pfpr.ls, subset, hv042 == 1 & hv103 == 1 & hml32 %in% c(0, 1) )
@@ -38,8 +40,18 @@ if (Variable == "PfPR"){
         var2 <- list("num_p")
         PR_LGA <- pmap(list(pfpr.ls, var1, var2), generate.PR.state_LGA_repDS)
         fin_df <- plyr::ldply(PR_LGA, rbind)
+        
       
-      }else if(subVariable == "State"){
+      
+      }else if(subVariable == "cluster"){
+        #clusters in each LGA 
+        num_clu <-lapply(pfpr.ls, function(x) x%>% dplyr::select(LGA,v001,hv007))
+        num_clu <-lapply(num_clu, function(x) x%>% distinct)
+        sum_df <-lapply(num_clu, function(x) x %>% group_by(LGA) %>% summarise(n_clusters =n(), year = unique(hv007)))
+      
+    
+      
+        
         print("computing raw case management coverage estimates at the state-level for years 2008, 2010, 2013, 2015 & 2018")
         var <- list("State")
         var2 <- list("num_p")
@@ -48,8 +60,75 @@ if (Variable == "PfPR"){
         fin_df <- fin_df %>%  distinct(State, comboACT, se, year)
         state_ls <- list(PR_State_DHS_2008_10 = fin_df, PR_State_with_LGA_DHS_2008_10 = fin_df)  
     
+    }
   }
 }
+  
+if (plot == TRUE & subVariable == "LGA"){
+  
+    LGA_map_ls <- list(LGA_clean_names)
+    join_LGA <- Map(function(x, y) left_join(x, y, by = "LGA"), LGA_map_ls, PR_LGA)
+    map_val <- list("p_test")
+    var<-list("PfPR by LGA (raw values)")
+    maps <- pmap(list(join_LGA, map_val, var), map_fun_2)
+    arrange_maps <- do.call(tmap_arrange, maps)
+    print("PfPR maps generated at the LGA-level")
+    
+    #number of clusters plot 
+    join_LGA <- Map(function(x, y) left_join(x, y, by = "LGA"), LGA_map_ls, sum_df)
+    map_val <- list("n_clusters")
+    var<-list("Number of clusters by LGA (raw values)")
+    maps <- pmap(list(join_LGA, map_val, var), map_fun_3)
+    arrange_maps <- do.call(tmap_arrange, maps)
+    print("Number of clusters by LGA for PfPR maps generated at the LGA-level")
+    
+    
+} 
+
+
+tmaptools::palette_explorer()
+    
+if (plot == TRUE & subVariable == "LGA" & missingplot == TRUE){
+  
+      miss_df <- fin_df %>%  mutate(count = case_when(is.na(p_test) ~ "missing data",
+                                                      !is.na(p_test) ~ "data available")) %>% 
+        group_by(year, count) %>% 
+        summarise(n = n())
+        miss_plot<-ggplot(data=miss_df, aes(x=year, y=n, fill=count)) +
+        geom_bar(stat="identity")+ 
+        theme_minimal()+
+        scale_fill_manual(values=c('#E69F00', '#999999'))
+        
+      
+      
+      line_plot<- ggplot(fin_df, aes(x = year, y = comboACT, group = LGA)) + 
+        geom_line(color = "blue") +
+        xlab('Time') +
+        ylab('ACT coverage by LGA')+
+        labs(caption = "No smoothing, 92 missing values")
+      print("case management line plot generated at the LGA-level")
+      # print(plot)
+}   
+    
+if (SAVE == TRUE & subVariable == "LGA") {
+      write_csv(fin_df, paste0(print_path, "/", "PfPR_LGA_est_DHS_2010_2018.csv"))
+      
+      if (plot == TRUE){
+        pdf(file=paste0(print_path, "/", "LGA_missing_data_DHS_2010_2018.pdf"))
+        plot(miss_plot)
+        dev.off()
+        tmap_save(tm =arrange_maps, filename = file.path(print_path, "/PfPR_maps_LGA_2010_2018.pdf"), width=13, height=13, units ="in", asp=0,
+                  paper ="A4r", useDingbats=FALSE)
+        tmap_save(tm =arrange_maps, filename = file.path(print_path, "/Num_clusters_maps_LGA_2010_2018_2.pdf"), width=13, height=13, units ="in", asp=0,
+                  paper ="A4r", useDingbats=FALSE)
+      }else {
+        print("analysis completed")
+      }
+    
+    
+    
+    
+    
 ####################################################################################################
 ## Pfpr analysis
 ####################################################################################################

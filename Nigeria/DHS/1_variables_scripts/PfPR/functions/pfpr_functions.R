@@ -29,9 +29,11 @@ dataclean.para <-function(data, filter_var, filter_var1, filter_var2, cols, new_
 
 result.fun<- function(var, var1, var2, design, data) { #year
   year <- unique(na.omit(data$hv007))
-  p_est<-svyby(formula=make.formula(var), by=make.formula(var1), FUN=svymean, design, na.rm=T) # svyciprop, method ='logit', levels=0.95, vartype= "se"
-  num_est<-svyby(formula=make.formula(var2), by=make.formula(var1), FUN=svytotal, design, na.rm=T)%>% 
+  p_est<-survey::svyby(formula=make.formula(var), by=make.formula(var1), FUN=svymean, design, na.rm=T) # svyciprop, method ='logit', levels=0.95, vartype= "se"
+  
+  num_est<-survey::svyby(formula=make.formula(var2), by=make.formula(var1), FUN=svytotal, design, na.rm=T)%>% 
     dplyr:: select(-se)%>% mutate(num_p = round(num_p, 0))
+  
   p_num <-p_est%>%left_join(num_est)%>% rename(`Number of Participants` = num_p)
   
   #year <- data.frame(year = unique(data[,year]))
@@ -42,7 +44,8 @@ result.fun<- function(var, var1, var2, design, data) { #year
 
 
 generate.PR.state_LGA_repDS <- function(df, var1, var2){
-  df1<-dataclean.para(df, hv005, hc1, hml32, 'hml32', 'p_test')  
+  df1<-dataclean.para(df, hv005, hc1, hml32, 'hml32', 'p_test') 
+  df1$num_p
   svyd <- svydesign.fun(df1)
   #generate LGA estimates 
   df2 <- result.fun('p_test', var1, var2, design=svyd, data =df1) 
