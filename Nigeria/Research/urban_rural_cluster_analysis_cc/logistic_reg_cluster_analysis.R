@@ -30,7 +30,7 @@ lapply(x, library, character.only = TRUE) #applying the library function to pack
 
 
 # set document path to current script path 
-setwd("C:/Users/ido0493/Box/NU-malaria-team/data/nigeria_dhs/data_analysis")
+setwd("C:/Users/pc/Box/NU-malaria-team/data/nigeria_dhs/data_analysis")
 
 #loading dataset
 #dhs2019 <- read.csv("allcluster_revised_kap_housing_quality.csv", header= TRUE)
@@ -309,7 +309,7 @@ mmodel <- glm(p_level ~ edu_a + wealth_2 + net_use_u5 + net_use_preg +
 
 summary(mmodel)
 
-plot_model(mmodel, title = " ", line.size = 0.7, dot.size = 1.3) + ylim(0, 2)
+plot_model(mmodel, title = " ", line.size = 1, dot.size = 1.5) + ylim(0, 2.5)
 
 
 ## extract the coefficients from the model and exponentiate
@@ -347,7 +347,7 @@ expit<-function(x){
 
 df_edu_rural_pred <- data.frame(edu_prob$edu_a$x,expit(edu_prob$edu_a$fit),expit(edu_prob$edu_a$lower), expit(edu_prob$edu_a$upper), cat ="rural")
 
-df_edu_urban_pred <- data.frame(edu_prob$edu_a$x,expit(edu_prob$edu_a$fit),expit(edu_prob$edu_a$lower), expit(edu_prob$edu_a$upper), cat= "urban")
+#df_edu_urban_pred <- data.frame(edu_prob$edu_a$x,expit(edu_prob$edu_a$fit),expit(edu_prob$edu_a$lower), expit(edu_prob$edu_a$upper), cat= "urban")
 
 df_edu_all <- rbind(df_edu_rural_pred, df_edu_urban_pred)
 
@@ -368,6 +368,120 @@ df_edu_all%>%
 
   
                             
+
+ggsave(
+  "education_predicted_probabilities.pdf",
+  path = "results/research_plots/pred_probabilities",
+  dpi = 300,
+  limitsize = TRUE,
+)
+
+
+
+ACT_prob <-predictorEffects(mmodel, ~ ACT_use_u5)
+
+expit<-function(x){
+  exp(x)/(1+exp(x))
+}
+
+df_ACT_rural_pred <- data.frame(ACT_prob$ACT_use_u5$x,expit(ACT_prob$ACT_use_u5$fit),expit(ACT_prob$ACT_use_u5$lower), expit(ACT_prob$ACT_use_u5$upper), cat ="rural")
+
+df_ACT_urban_pred <- data.frame(ACT_prob$ACT_use_u5$x,expit(ACT_prob$ACT_use_u5$fit),expit(ACT_prob$ACT_use_u5$lower), expit(ACT_prob$ACT_use_u5$upper), cat= "urban")
+
+df_ACT_use_u5ll <- rbind(df_ACT_rural_pred, df_ACT_urban_pred)
+
+head(df_ACT_use_u5ll)
+
+library(viridis)
+df_ACT_use_u5ll%>%
+  ggplot( aes(x=ACT_use_u5, y=expit.ACT_prob.ACT_use_u5.fit., ymin=expit.ACT_prob.ACT_use_u5.lower., ymax=expit.ACT_prob.ACT_use_u5.upper., fill=str_to_title(cat), 
+              linetype=str_to_title(cat))) +
+  geom_line() +
+  geom_ribbon(alpha=0.5) +
+  scale_color_viridis(discrete = TRUE) +
+  ylab("Predicted probabilities of high parasite prevalence")+ 
+  xlab("Proportion of U5 that use ACT")+ 
+  theme_bw()+
+  theme(legend.title = element_blank())+ 
+  theme(panel.border = element_blank())
+
+
+
+
+ggsave(
+  "ACT_Use_U5_predicted_probabilities.pdf",
+  path = "results/research_plots/pred_probabilities",
+  dpi = 300,
+  limitsize = TRUE,
+)
+
+l_pop_den_prob <-predictorEffects(mmodel, ~ l_pop_den)
+
+expit<-function(x){
+  exp(x)/(1+exp(x))
+}
+
+#df_l_pop_den_rural_pred <- data.frame(l_pop_den_prob$l_pop_den$x,expit(l_pop_den_prob$l_pop_den$fit),expit(l_pop_den_prob$l_pop_den$lower), expit(l_pop_den_prob$l_pop_den$upper), cat ="rural")
+
+df_l_pop_den_urban_pred <- data.frame(l_pop_den_prob$l_pop_den$x,expit(l_pop_den_prob$l_pop_den$fit),expit(l_pop_den_prob$l_pop_den$lower), expit(l_pop_den_prob$l_pop_den$upper), cat= "urban")
+
+df_l_pop_denll <- rbind(df_l_pop_den_rural_pred, df_l_pop_den_urban_pred)
+
+head(df_l_pop_denll)
+
+library(viridis)
+df_l_pop_denll%>%
+  ggplot( aes(x=l_pop_den, y=expit.l_pop_den_prob.l_pop_den.fit., ymin=expit.l_pop_den_prob.l_pop_den.lower., ymax=expit.l_pop_den_prob.l_pop_den.upper., fill=str_to_title(cat), 
+              linetype=str_to_title(cat))) +
+  geom_line() +
+  geom_ribbon(alpha=0.5) +
+  scale_color_viridis(discrete = TRUE) +
+  ylab("Predicted probabilities of high parasite prevalence")+ 
+  xlab("Population density")+ 
+  theme_bw()+
+  theme(legend.title = element_blank())+ 
+  theme(panel.border = element_blank())
+
+
+
+
+ggsave(
+  "population_density_predicted_probabilities.pdf",
+  path = "results/research_plots/pred_probabilities",
+  dpi = 300,
+  limitsize = TRUE,
+)
+
+
+edu_prob <-predictorEffects(mmodel, ~ edu_a)
+
+expit<-function(x){
+  exp(x)/(1+exp(x))
+}
+
+df_edu_rural_pred <- data.frame(edu_prob$edu_a$x,expit(edu_prob$edu_a$fit),expit(edu_prob$edu_a$lower), expit(edu_prob$edu_a$upper), cat ="rural")
+
+#df_edu_urban_pred <- data.frame(edu_prob$edu_a$x,expit(edu_prob$edu_a$fit),expit(edu_prob$edu_a$lower), expit(edu_prob$edu_a$upper), cat= "urban")
+
+df_edu_all <- rbind(df_edu_rural_pred, df_edu_urban_pred)
+
+head(df_edu_all)
+
+library(viridis)
+df_edu_all%>%
+  ggplot( aes(x=edu_a, y=expit.edu_prob.edu_a.fit., ymin=expit.edu_prob.edu_a.lower., ymax=expit.edu_prob.edu_a.upper., fill=str_to_title(cat), 
+              linetype=str_to_title(cat))) +
+  geom_line() +
+  geom_ribbon(alpha=0.5) +
+  scale_color_viridis(discrete = TRUE) +
+  ylab("Predicted probabilities of high parasite prevalence")+ 
+  xlab("Proportion of individuals with secondary or higher educational attainment")+ 
+  theme_bw()+
+  theme(legend.title = element_blank())+ 
+  theme(panel.border = element_blank())
+
+
+
 
 ggsave(
   "education_predicted_probabilities.pdf",

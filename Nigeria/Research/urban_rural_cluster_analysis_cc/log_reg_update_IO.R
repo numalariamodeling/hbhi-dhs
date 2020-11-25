@@ -113,7 +113,7 @@ if(scatter = T){
 #creating prevelence classes
 
 #levels <- c(-2, 0.009, 0.049, 0.09, 0.49, 0.749, 1)
-df2 <- df2 %>% filter(p_test != "NA")
+df2 <- df %>% filter(p_test != "NA")
 levels <- c(-2, (median(df2$p_test)), 1)
 labels <- c("very low", "high")
 df3 <- df2 %>% mutate(p_level = cut(p_test, levels, labels = labels))
@@ -308,7 +308,7 @@ mmodel <- glm(p_level ~ edu_a + wealth_2 + net_use_u5 + net_use_preg +
 
 summary(mmodel)
 
-plot_model(mmodel, title = " ", line.size = 0.7, dot.size = 1.3) + ylim(0, 2)
+plot_model(mmodel, title = " ", line.size = 1, dot.size = 1.5) + ylim(0, 1.76)
 
 
 ## extract the coefficients from the model and exponentiate
