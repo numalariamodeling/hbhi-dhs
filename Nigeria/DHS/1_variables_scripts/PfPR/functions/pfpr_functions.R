@@ -27,34 +27,33 @@ dataclean.para <-function(data, filter_var, filter_var1, filter_var2, cols, new_
 } 
 
 
-result.fun<- function(var, var1, var2, design, data) { #year
+result.fun<- function(var, var1,design, data) { #year,var2,
   year <- unique(na.omit(data$hv007))
   p_est<-survey::svyby(formula=make.formula(var), by=make.formula(var1), FUN=svymean, design, na.rm=T) # svyciprop, method ='logit', levels=0.95, vartype= "se"
   
-  num_est<-survey::svyby(formula=make.formula(var2), by=make.formula(var1), FUN=svytotal, design, na.rm=T)%>% 
-    dplyr:: select(-se)%>% mutate(num_p = round(num_p, 0))
+ # num_est<-survey::svyby(formula=make.formula(var2), by=make.formula(var1), FUN=svytotal, design, na.rm=T)%>% 
+    #dplyr:: select(-se)%>% mutate(num_p = round(num_p, 0))
   
-  p_num <-p_est%>%left_join(num_est)%>% rename(`Number of Participants` = num_p)
+  #p_num <-p_est%>%left_join(num_est)%>% rename(`Number of Participants` = num_p)
   
   #year <- data.frame(year = unique(data[,year]))
   
-  cbind(p_num, year)
+  cbind(p_est, year)
   
 }
 
 
 generate.PR.state_LGA_repDS <- function(df, var1, var2){
   df1<-dataclean.para(df, hv005, hc1, hml32, 'hml32', 'p_test') 
-  df1$num_p
   svyd <- svydesign.fun(df1)
   #generate LGA estimates 
-  df2 <- result.fun('p_test', var1, var2, design=svyd, data =df1) 
-  if(var1 == "LGA"){
-    df2 <- df2 %>% mutate(LGA = case_when(LGA == "kiyawa"~ "Kiyawa", LGA == "kaita" ~"Kaita", TRUE ~LGA)) 
-  }else{
-    print("no name corrections for state, repDs or regional estimates")
-  }
-  repDS_LGA %>% left_join(df2)%>% tidyr::fill(year, .direction = "updown")
+  df2 <- result.fun('p_test', var1,design=svyd, data =df1) 
+  # if(var1 == "LGA"){
+  #   df2 <- df2 %>% mutate(LGA = case_when(LGA == "kiyawa"~ "Kiyawa", LGA == "kaita" ~"Kaita", TRUE ~LGA)) 
+  # }else{
+  #   print("no name corrections for state, repDs or regional estimates")
+  # }
+  # #repDS_LGA %>% left_join(df2)%>% tidyr::fill(year, .direction = "updown")
 }
 
 
