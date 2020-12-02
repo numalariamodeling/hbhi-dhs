@@ -23,6 +23,7 @@ if (Variable == "CM"){
   LGA_sf <- LGA_clean_names%>%  as_tibble() %>% dplyr::select(LGA, State)
   repDS_LGA<- rep_DS %>% left_join(LGA_sf)
   
+  
     if(subVariable == "LGA"){
       print("computing raw case management coverage estimates at the LGA-level for years 2008, 2010, 2013, 2015 & 2018")
       var <- list("LGA")
