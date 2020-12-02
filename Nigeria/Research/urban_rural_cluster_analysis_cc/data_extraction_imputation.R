@@ -43,12 +43,23 @@ pfpr_data <- dhs[[1]] # uses the DHS person recode dataset
 
 pfpr_care <- dhs2[[1]] %>% filter(b5 == 1  & b19 <  60 & h22 == 1) 
 
-pfpr_care <- pfpr_care[,c("v001", "ml13e")]
+pfpr_care <- pfpr_care[,c("v001", "hv002","ml13e")]
 colnames(pfpr_care)[1]<- "hv001"
 
-#pfpr_data <- left_join(pfpr_data, pfpr_care, by = "hv001") 
+#merging datasets
 
-pfpr_data2 <- pfpr_data
+pfpr_place < - setDT(left_merge) #ignore error message warning 
+pfpr_place < - setDT(pfpr_care) #ignore error message warning
+setkey(left_merge,hv001,hv002)
+setkey(pfpr_care,hv001,hv002)
+
+
+
+pr_kr_merge <- left_merge[pfpr_care, allow.cartesian = T] #Left Join
+
+
+
+pfpr_data2 <- pr_kr_merge
 
 
 # Treat variables as factors
@@ -67,7 +78,7 @@ sort(p_missing[p_missing > 0], decreasing = TRUE)
 # Select variables that could cause problems in the imputation process
 pfpr_data2 <- pfpr_data2 %>% 
   dplyr::select(hv001, hml32, hv270, hml16, ha54, hv106, hv103, hv104, hv009, 
-                hv042, hc1, hv025, hv007, hv005, hml16, )
+                hv042, hc1, hv025, hv007, hv005, hml16, ml13e)
 
 # We run the mice code with 0 iterations 
 
@@ -87,7 +98,7 @@ predM[, c("hv001","hv042","hc1", "hv025", "hv007", "hv001", "hml16")] <- 0
 poly <- c("hv270", "hv106")
 
 # Dichotomous variable
-log <- c("hml32", "ha54", "hv103","hv104","hv009")
+log <- c("hml32", "ha54", "hv103","hv104","hv009", "ml13e")
 
 # Turn their methods matrix into the specified imputation models
 meth[poly] <- "polr"
@@ -309,66 +320,6 @@ clu_pop_den <- read.csv("NGGC7BFL.csv")%>%
 
 summary(clu_pop_den$l_pop_den)
 
-#KAP proportions 
-#Malaria can be fully cured by medicine 
-dhs2_df<- dhs2[[1]]
-
-kap_cure_med <- dataclean(dhs2_df, v005, v005, '"s1108ai"', "kap_cure_med")
-kap_cure_med$kap_cure_med[kap_cure_med$kap_cure_med == 8] <- 0
-
-svyd_cure_kap <- svydesign.fun(kap_cure_med)
-table(kap_cure_med$kap_cure_med)
-
-clu_kap_cure<- result.fun('kap_cure_med', 'v001', design=svyd_cure_kap, kap_cure_med, "v007")
-head(clu_kap_cure)
-colnames(clu_kap_cure)[1]<- "hv001"
-
-#Malaria can lead to death
-kap_death <- dataclean(dhs2_df, v005, v005, '"s1108ba"', "kap_death")
-kap_death$kap_death[kap_death$kap_death == 8] <- 0
-
-svyd_death_kap <- svydesign.fun(kap_death)
-table(kap_death$kap_death)
-
-clu_kap_death<- result.fun('kap_death', 'v001', design=svyd_death_kap, kap_death, "v007")
-head(clu_kap_death)
-colnames(clu_kap_death)[1]<- "hv001"
-
-#No worry about malaria due to easy treatment
-
-kap_treat <- dataclean(dhs2_df, v005, v005, '"s1108bc"', "kap_treat")
-kap_treat$kap_treat[kap_treat$kap_treat == 8] <- 0
-
-svyd_treat_kap <- svydesign.fun(kap_treat)
-table(kap_treat$kap_treat)
-
-clu_kap_treat<- result.fun('kap_treat', 'v001', design=svyd_treat_kap, kap_treat, "v007")
-head(clu_kap_treat)
-colnames(clu_kap_treat)[1]<- "hv001"
-
-#Know people sick with malaria
-
-kap_know <- dataclean(dhs2_df, v005, v005, '"s1108bd"', "kap_know")
-kap_know$kap_know[kap_know$kap_know == 8] <- 0
-
-svyd_know_kap <- svydesign.fun(kap_know)
-table(kap_know$kap_know)
-
-clu_kap_know<- result.fun('kap_know', 'v001', design=svyd_know_kap, kap_know, "v007")
-head(clu_kap_know)
-colnames(clu_kap_know)[1]<- "hv001"
-
-#Only weak children can die from malaria
-
-kap_weak <- dataclean(dhs2_df, v005, v005, '"s1108bf"', "kap_weak")
-kap_weak$kap_weak[kap_weak$kap_weak == 8] <- 0
-
-svyd_weak_kap <- svydesign.fun(kap_weak)
-table(kap_weak$kap_weak)
-
-clu_kap_weak<- result.fun('kap_weak', 'v001', design=svyd_weak_kap, kap_weak, "v007")
-head(clu_kap_weak)
-colnames(clu_kap_weak)[1]<- "hv001"
 
 # bind the datasets 
 
