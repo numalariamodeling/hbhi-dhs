@@ -39,28 +39,19 @@ dhs2 <- sapply(dhs2, read_dta, simplify = F)
 
 pfpr_data <- dhs[[1]] # uses the DHS person recode dataset 
 
-#merging with the KR dataset
-
-pfpr_care <- dhs2[[1]] %>% filter(b5 == 1  & b19 <  60 & h22 == 1) 
-
-pfpr_care <- pfpr_care[,c("v001", "hv002","ml13e")]
-colnames(pfpr_care)[1]<- "hv001"
-
-#merging datasets
-
-pfpr_place < - setDT(left_merge) #ignore error message warning 
-pfpr_place < - setDT(pfpr_care) #ignore error message warning
-setkey(left_merge,hv001,hv002)
-setkey(pfpr_care,hv001,hv002)
+pfpr_df <- pfpr_data %>% filter(hv042 == 1 & hv103 == 1 & hc1 %in% c(6:59) & hml32 %in% c(0, 1,6))
 
 
+pfpr_data2 <- pfpr_df
 
-pr_kr_merge <- left_merge[pfpr_care, allow.cartesian = T] #Left Join
-
-
-
-pfpr_data2 <- pr_kr_merge
-
+pfpr_data <- pfpr_df %>% 
+  dplyr::select(hv001, hml32, hv270, hml16, ha54, hv106, hv103, hv104, hv009, 
+                hv042, hc1, hv025, hv007, hv005, hml16)
+#pfpr_data <- pfpr_data2
+# Select variables that could cause problems in the imputation process
+pfpr_data2 <- pfpr_data2 %>% 
+  dplyr::select(hv001, hml32, hv270, hml16, ha54, hv106, hv103, hv104, hv009, 
+                hv042, hc1, hv025, hv007, hv005, hml16)
 
 # Treat variables as factors
 pfpr_data2$hml32 <- as.factor(pfpr_data2$hml32) #p_test
@@ -72,13 +63,14 @@ pfpr_data2$hv103 <- as.factor(pfpr_data2$hv103) #ITN use proportion among u5
 pfpr_data2$hv104 <- as.factor(pfpr_data2$hv104) #ITN use proportion among pregnant women 
 pfpr_data2$hv009 <- as.factor(pfpr_data2$hv009) # median household size
 
+
 p_missing <- unlist(lapply(pfpr_data2, function(x) sum(is.na(x))))/nrow(pfpr_data)
 sort(p_missing[p_missing > 0], decreasing = TRUE)
 
 # Select variables that could cause problems in the imputation process
 pfpr_data2 <- pfpr_data2 %>% 
   dplyr::select(hv001, hml32, hv270, hml16, ha54, hv106, hv103, hv104, hv009, 
-                hv042, hc1, hv025, hv007, hv005, hml16, ml13e)
+                hv042, hc1, hv025, hv007, hv005, hml16, ml13e, hv022, )
 
 # We run the mice code with 0 iterations 
 
@@ -90,7 +82,7 @@ predM <- imp$predictorMatrix
 meth <- imp$method
 
 # Setting values of variables I'd like to leave out to 0 in the predictor matrix
-predM[, c("hv001","hv042","hc1", "hv025", "hv007", "hv001", "hml16")] <- 0
+predM[, c("hv001","hv042","hc1", "hv025", "hv007", "hv001", "hml16", "hv022")] <- 0
 
 # Specify a separate imputation model for variables of interest 
 
@@ -98,7 +90,7 @@ predM[, c("hv001","hv042","hc1", "hv025", "hv007", "hv001", "hml16")] <- 0
 poly <- c("hv270", "hv106")
 
 # Dichotomous variable
-log <- c("hml32", "ha54", "hv103","hv104","hv009", "ml13e")
+log <- c("hml32", "ha54", "hv103","hv104","hv009", "ml13e", "hv022")
 
 # Turn their methods matrix into the specified imputation models
 meth[poly] <- "polr"
