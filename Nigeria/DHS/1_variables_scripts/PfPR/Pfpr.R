@@ -19,7 +19,7 @@ if (Variable == "PfPR"){
   key_list <- lapply(key_list, st_drop_geometry)
   key_list <- Map(cbind, key_list, v001 = NGA_ID)
   #subsetting for microscopy (denominator -hh selected for hemoglobin, child slept there last night and have result for test)
-  pfpr.ls <- lapply(pfpr.ls, subset, hv042 == 1 & hv103 == 1 & hml32 %in% c(0, 1) )
+  pfpr.ls <- lapply(pfpr.ls, subset, hv042 == 1 & hv103 == 1 & hml32 %in% c(0, 1,6) )
   
   
   ifelse(!dir.exists(file.path(ResultDir, "PfPR")), 
@@ -54,7 +54,7 @@ if (Variable == "PfPR"){
         #var2 <- list("num_p")
         PR_cluster <- map2(pfpr.ls, var1, generate.PR.state_LGA_repDS)
         clu_df <- plyr::ldply(PR_cluster, rbind) 
-        write.csv(clu_df, "")
+       
         
     
       
@@ -90,7 +90,17 @@ if (plot == TRUE & subVariable == "LGA"){
     print("Number of clusters by LGA for PfPR maps generated at the LGA-level")
     
     
-} 
+} else if(plot  == TRUE & subVariable == "LGA") {
+  clu_18_df <- read.csv(file.path(print_path, "PfPR_clu_est_DHS_2010_2018.csv")) %>%filter(year == "2018")
+  clu_shp_urban <- left_join(NGAshplist[[7]], clu_18_df, by=c("DHSCLUST" = "v001")) %>%  filter(URBAN_RURA  == "U")
+  urban_clu_map <- tmap.clu(state_sf, ptsfile=clu_shp_urban, "p_test", "2018 urban cluster PfPR Nigeria")
+  clu_shp_rural <- left_join(NGAshplist[[7]], clu_18_df, by=c("DHSCLUST" = "v001")) %>%  filter(URBAN_RURA  == "R")
+  rural_clu_map <- tmap.clu(state_sf, ptsfile=clu_shp_rural, "p_test", "2018 rural cluster PfPR Nigeria")
+  tmap_save(tm =urban_clu_map, filename = file.path(print_path, "/PfPR_urban_cluster_maps_2018.pdf"), width=13, height=13, units ="in", asp=0,
+            paper ="A4r", useDingbats=FALSE)
+  tmap_save(tm =rural_clu_map, filename = file.path(print_path, "/PfPR_rural_cluster_maps_2018_2.pdf"), width=13, height=13, units ="in", asp=0,
+            paper ="A4r", useDingbats=FALSE)
+}
 
 
 tmaptools::palette_explorer()
@@ -118,7 +128,7 @@ if (plot == TRUE & subVariable == "LGA" & missingplot == TRUE){
 }   
     
 if (SAVE == TRUE & subVariable == "LGA") {
-      write_csv(clu_df, paste0(print_path, "/", "PfPR_clu_est_DHS_2010_2018.csv"))
+      write_csv(fin_df, paste0(print_path, "/", "PfPR_DS_est_DHS_2010_2018.csv"))
       
       if (plot == TRUE){
         pdf(file=paste0(print_path, "/", "LGA_missing_data_DHS_2010_2018.pdf"))
@@ -134,6 +144,12 @@ if (SAVE == TRUE & subVariable == "LGA") {
 }    
     
     
+
+if (SAVE == TRUE & subVariable == "cluster") {
+  write_csv(clu_df, paste0(print_path, "/", "PfPR_clu_est_DHS_2010_2018.csv"))
+  }else {
+    print("analysis completed")
+}    
     
     
 # ####################################################################################################
