@@ -1,3 +1,8 @@
+#This script processes simulation output to generate percent change in outcomeswith a 2020 and 2019 baseline at the state and national level in Burkina
+# Created by Ifeoma Ozodiegwu 
+
+
+
 # create baseline file 
 rm(list = ls())
 TeamDir <-"C:/Users/ido0493/Box/NU-malaria-team"
@@ -54,19 +59,50 @@ df <- plyr::ldply(df, rbind)%>%  dplyr::select(.id,year, PfPR, U5_PfPR,
 
 
 df_all<- df %>% mutate(State = str_split(.id, "_", simplify = TRUE)[,9], 
-         State = str_sub(State, 1, str_length(State)-4), scenario = str_split(.id, "/", simplify = T)[, 10],
-         death_rate_mean = (death_rate_1 + death_rate_2)/2, U5_death_rate_mean = (U5_death_rate_1 + U5_death_rate_2)/2)
+  State = str_sub(State, 1, str_length(State)-4), scenario = str_split(.id, "/", simplify = T)[, 10],
+  death_rate_mean = (death_rate_1 + death_rate_2)/2, U5_death_rate_mean = (U5_death_rate_1 + U5_death_rate_2)/2) 
+ 
   
 
 
-fin_df <- percent_change_fun(df_all, TRUE)
+fin_df <- percent_change_fun(df_all, TRUE)  
+
 
 write_csv(fin_df, file.path(WorkDir, "/2020_to_2030_v2/percent_change_States_indicators.csv"))
 
 
 
-# national level 
+#create new variables to detects the column with the greatest reduction in indicators or the best scenario
 
+find_df2 <- fin_df%>%  filter(scenario != "NGA projection scenario 2") %>% group_by(State) %>% 
+  mutate(pfpr_min = ifelse(PfPR_percent_change == min(PfPR_percent_change), 1, 0),
+         U5_pfpr_min = ifelse(U5_PfPR_percent_change == min(U5_PfPR_percent_change), 1, 0),
+         incidence_min = ifelse(U5_PfPR_percent_change == min(U5_PfPR_percent_change), 1, 0), 
+         U5_incidence_min = ifelse(U5_incidence_percent_change == min(U5_incidence_percent_change), 1, 0), 
+         death_min = ifelse(death_percent_change == min(death_percent_change), 1, 0),
+         U5_death_min = ifelse(U5_death_percent_change == min(U5_death_percent_change), 1, 0))%>% 
+  rowwise() %>% 
+  mutate(sumVar = sum(c_across(pfpr_min:U5_death_min)),
+         best_scenario = ifelse(sumVar == 6, scenario, "variable"))
+  
+# imap_dfc(function(x, name) {
+#   if (name %in% cols_to_mutate) {
+#     new_vals <- ifelse(x == min(x), 1, 0)
+#     tibble(!!quo_name(name) := x, !!quo_name(paste0(name, "_n")) := new_vals)
+#   } else {
+#     tibble(!!quo_name(name) := x)
+#   }
+# }) 
+# 
+# 
+# %>%  
+#   
+
+write_csv(find_df2, file.path(WorkDir, "/2020_to_2030_v2/percent_change_States_indicators_second_best_scenario.csv"))
+
+
+
+# national level % change 
 
 scen_dat <- read.csv(file.path(ProcessDir, "scenario_adjustment_info.csv"))
 
@@ -97,7 +133,7 @@ df_all<- df %>% mutate(scenario = str_split(.id, "/", simplify = T)[, 10]) %>%  
 write_csv(df_all, file.path(WorkDir, "/2020_to_2030_v2/yearly_percent_change_indicators.csv"))
 
 
-#2019
+#2019 % change 
 fin_df <- df_all %>% 
   mutate(PfPR_percent_change = (PfPR - PfPR[year =="2019"])/PfPR[year =="2019"]* 100, 
     U5_PfPR_percent_change = (U5_PfPR - U5_PfPR[year =="2019"])/U5_PfPR[year =="2019"]* 100, 
@@ -106,7 +142,8 @@ fin_df <- df_all %>%
                       death_percent_change = (death_rate_mean - death_rate_mean[year =="2019"])/death_rate_mean[year =="2019"]* 100,
                            U5_death_percent_change = (U5_death_rate_mean - U5_death_rate_mean[year =="2019"])/U5_death_rate_mean[year =="2019"]* 100)
                           
-#2020
+#2020 % change 
+
 fin_df_2020 <-fin_df <- percent_change_fun(df_all, FALSE)
 
 write_csv(fin_df, file.path(WorkDir, "/2020_to_2030_v2/percent_change_indicators_2019_base.csv"))
