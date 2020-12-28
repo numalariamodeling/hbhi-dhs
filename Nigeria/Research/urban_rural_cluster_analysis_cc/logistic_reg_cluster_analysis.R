@@ -30,13 +30,13 @@ lapply(x, library, character.only = TRUE) #applying the library function to pack
 
 
 # set document path to current script path 
-setwd("C:/Users/pc/Box/NU-malaria-team/data/nigeria_dhs/data_analysis")
+setwd("C:/Users/pc/downloads")
 
 #loading dataset
 #dhs2019 <- read.csv("allcluster_revised_kap_housing_quality.csv", header= TRUE)
 #mis2015 <- read.csv("mis_allcusters_housing_q.csv", header= TRUE)
 #mis2010 <- read.csv("mis2010_allcusters_housing_q.csv", header= TRUE)
-merged_df <- read.csv("data/Nigereia_2010_2018_clustered_final_dataset.csv", header= TRUE)
+merged_df <- read.csv("Nigereia_2010_2018_clustered_final_dataset.csv", header= TRUE)
 
 table(merged_df$Rural_urban)
 
@@ -59,7 +59,7 @@ df <- urbandataset[ ,colnames(urbandataset)
                            "l_pop_den","p_test", "humidindex", "Rural_urban")]
 
 colnames(df)
-summary(df2$humidindex)
+summary(df$humidindex)
 
 df2 <- df
 df2 <- df2 %>% mutate(scaled_hudix = scale(df2$humidindex, center = T))
@@ -303,13 +303,17 @@ mmodel <- glm(p_level ~ edu_a + wealth_2 + net_access + net_use_u5 + net_use_pre
 df3 <- mutate(df3, Rural_urban = ifelse(Rural_urban == 1, 1, 0))
 
 mmodel <- glm(p_level ~ edu_a + wealth_2 + net_use_u5 + net_use_preg + 
-                    ACT_use_u5 + hh_size + scaled_hudix + l_pop_den + Rural_urban,
+                    ACT_use_u5 + hh_size + humidindex + l_pop_den + Rural_urban,
              data = df3, family = "binomial")
 
 
 summary(mmodel)
 
-plot_model(mmodel, title = " ", line.size = 1, dot.size = 1.5) + ylim(0, 2.5)
+#setting plotting theme
+
+set_theme(base = theme_classic()) #To remove the background color and the grids
+
+plot_model(mmodel, title = " ", line.size = 1, dot.size = 2) + ylim(0, 2.5)
 
 
 ## extract the coefficients from the model and exponentiate
@@ -421,9 +425,9 @@ expit<-function(x){
   exp(x)/(1+exp(x))
 }
 
-#df_l_pop_den_rural_pred <- data.frame(l_pop_den_prob$l_pop_den$x,expit(l_pop_den_prob$l_pop_den$fit),expit(l_pop_den_prob$l_pop_den$lower), expit(l_pop_den_prob$l_pop_den$upper), cat ="rural")
+df_l_pop_den_rural_pred <- data.frame(l_pop_den_prob$l_pop_den$x,expit(l_pop_den_prob$l_pop_den$fit),expit(l_pop_den_prob$l_pop_den$lower), expit(l_pop_den_prob$l_pop_den$upper), cat ="rural")
 
-df_l_pop_den_urban_pred <- data.frame(l_pop_den_prob$l_pop_den$x,expit(l_pop_den_prob$l_pop_den$fit),expit(l_pop_den_prob$l_pop_den$lower), expit(l_pop_den_prob$l_pop_den$upper), cat= "urban")
+#df_l_pop_den_urban_pred <- data.frame(l_pop_den_prob$l_pop_den$x,expit(l_pop_den_prob$l_pop_den$fit),expit(l_pop_den_prob$l_pop_den$lower), expit(l_pop_den_prob$l_pop_den$upper), cat= "urban")
 
 df_l_pop_denll <- rbind(df_l_pop_den_rural_pred, df_l_pop_den_urban_pred)
 
@@ -489,3 +493,18 @@ ggsave(
   dpi = 300,
   limitsize = TRUE,
 )
+#plotting forest plot using ggplot
+rural_ci_df <- read.csv("data/ur_ci_rural.csv", header= TRUE)
+
+
+p <- ggplot(rural_ci_df, aes(x = odds, y = vars)) + 
+  geom_vline(aes(xintercept = 1), size = .25, linetype = "dashed") +
+  geom_errorbarh(aes(xmax = lower_ci, xmin = upper_ci), size = 1, height = .2, color = "gray50") +
+  geom_point(size = 4, color = "orange")+
+  theme_bw()+
+  theme(panel.grid.minor = element_blank())+ 
+  theme(panel.border = element_blank())+
+  ylab("")+
+  xlab("Odds Ratio")
+p 
+ 

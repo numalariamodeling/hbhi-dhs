@@ -15,19 +15,19 @@ lapply(x, library, character.only = TRUE) #applying the library function to pack
 
 
 # set document path to current script path 
-setwd("C:/Users/Gadget Stores/Documents/GIS DataBase")
+setwd("C:/Users/pc/Documents/NU - Malaria Modeling/GIS DataBase")
 
 # reads in functions so we can alias it using funenv$
 funEnv <- new.env()
-sys.source(file = file.path("C:/Users/Gadget Stores/Documents/NU - Malaria Modeling/Non Linear", "Nigeria functions.R"), 
+sys.source(file = file.path("C:/Users/pc/Documents/NU - Malaria Modeling/Non Linear", "Nigeria functions.R"), 
            envir = funEnv, toplevel.env = funEnv)
 
 
 options(survey.lonely.psu="adjust") # this option allows admin units with only one cluster to be analyzed
 
 #reading files
-temp_vap_18 <- read.csv("mis 15 temp_vapour.csv")
-dhs <-  read.csv("mis_allcusters_housing_q.csv")
+temp_vap_18 <- read.csv("temp_vapour_2018_20201216.csv")
+dhs <-  read.csv("dhsclusters_20201214.csv")
 
 
 #Calculating humidity indices
@@ -42,21 +42,20 @@ colnames(temp_vap_18_humid)[colnames(temp_vap_18_humid) == 'DHSCLUST'] <- 'hv001
 humid_df <- temp_vap_18_humid[,c("hv001","humidindex")]
 
 joiner <- left_join(dhs, humid_df, by = "hv001") 
-joiner <- as.data.frame(joiner)
+final2018 <- as.data.frame(joiner)
 
-write.csv(joiner, "mis15_allcluster_housing_humid_housi.csv")
+write.csv(final2018, "dhs2018clusters_final.csv")
 
 
-Joiner4 <- read.csv("mis10_allcluster_housing_humid_housi.csv")
 
-Joiner5 <- read.csv("mis15_allcluster_housing_humid_housi.csv")
+mis15 <- read.csv("mis2015clusters_final_20201214.csv")
 
-Joiner7 <- read.csv("dhs18_allcluster_housing_humid_housi_kap.csv")
+mis10 <- read.csv("mis2010clusters_final_20201214.csv")
 
 #binding datasets by same columns
 
 
-bind_df <- data.frame(mapply(c,dhis2018, mis15, mis10))
+bind_df <- data.frame(mapply(c,final2018, mis15, mis10))
 
 #writing final dataset to file
 write.csv(bind_df, "101518allcluster_housing_humid.csv")

@@ -17,21 +17,21 @@ lapply(x, library, character.only = TRUE) #applying the library function to pack
 
 
 # set document path to current script path 
-setwd("C:/Users/Admin/Documents/NU - Malaria Modeling/Non Linear")
+setwd("C:/Users/pc/Documents/NU - Malaria Modeling/Non Linear")
 
 # reads in functions so we can alias it using funenv$
 funEnv <- new.env()
-sys.source(file = file.path("C:/Users/Admin/Documents/NU - Malaria Modeling/Non Linear", "Nigeria functions.R"), 
+sys.source(file = file.path("C:/Users/pc/Documents/NU - Malaria Modeling/Non Linear", "Nigeria functions.R"), 
            envir = funEnv, toplevel.env = funEnv)
 
 
 options(survey.lonely.psu="adjust") # this option allows admin units with only one cluster to be analyzed
 
 
-dhs <- list.files(pattern = ".*MIS2010PR.*\\.DTA", recursive = F, full.names = TRUE)
+dhs <- list.files(pattern = ".*NGPR7AFL.*\\.DTA", recursive = F, full.names = TRUE)
 dhs <- sapply(dhs, read_dta, simplify = F)
 
-dhs2 <- list.files(pattern = ".*MIS2010KR.*\\.DTA", recursive = F, full.names = TRUE)
+dhs2 <- list.files(pattern = ".*NGKR7AFL.*\\.DTA", recursive = F, full.names = TRUE)
 dhs2 <- sapply(dhs2, read_dta, simplify = F)
 # clean and select pfpr data 
 
@@ -53,10 +53,10 @@ pfpr_df <- pfpr_data %>% filter(hv042 == 1 & hv103 == 1 & hc1 %in% c(6:59) & hml
 
 val_labels(pfpr_df$hv025) # value labels for place of residence, 1 = urban and 2 = rural
 
-pfpr_place <- pfpr_df %>% filter(hv025 == 1)
-pfpr_dhs <- pfpr_data%>% filter(hv025 == 1)
-#pfpr_place <- pfpr_df
-#pfpr_dhs <- pfpr_data
+#pfpr_place <- pfpr_df %>% filter(hv025 == 1)
+#pfpr_dhs <- pfpr_data%>% filter(hv025 == 1)
+pfpr_place <- pfpr_df
+pfpr_dhs <- pfpr_data
 # estimate cluster-level malaria prevalence
 
 pfpr_place<- funEnv$dataclean.para(pfpr_place, hv005, hc1, hml32, 'hml32', 'p_test') 
@@ -82,6 +82,85 @@ svyd_wealth<- funEnv$svydesign.fun(pfpr_wealth)
 clu_wealth <- result.fun('wealth_2', 'hv001', design=svyd_wealth, pfpr_wealth, "hv007")
 head(clu_wealth)
 
+
+#disagreegate wealth 
+look_for(dhs[[1]], "material")
+table(pfpr_df$hv205)
+
+
+#Housing quality
+#Estimate the proportion of clusters with good floor quality 
+pfpr_floor<- pfpr_df %>%  mutate(floor_type = ifelse(hv213 == 30| hv213 == 31|
+                                                       hv213 == 33| hv213 == 34|
+                                                       hv213 == 35,1, 0))
+table(pfpr_floor$floor_type)
+
+pfpr_floor<- funEnv$dataclean.para(pfpr_floor, hv005, hv005, floor_type, 'floor_type', 'house_floor') 
+table(pfpr_floor$house_floor)
+
+svyd_floor<- funEnv$svydesign.fun(pfpr_floor)
+
+clu_floor <- result.fun('house_floor', 'hv001', design=svyd_floor, pfpr_floor, "hv007")
+head(clu_floor)
+
+#Estimate the proportion of clusters with good wall quality 
+pfpr_wall<- pfpr_df %>%  mutate(wall_type = ifelse(hv214 == 30| hv214 == 31|
+                                                     hv214 == 33| hv214 == 34|
+                                                     hv214 == 35|hv214 == 36,1, 0))
+table(pfpr_wall$wall_type)
+
+pfpr_wall<- funEnv$dataclean.para(pfpr_wall, hv005, hv005, wall_type, 'wall_type', 'house_wall') 
+table(pfpr_wall$house_wall)
+
+svyd_wall<- funEnv$svydesign.fun(pfpr_wall)
+
+clu_wall <- result.fun('house_wall', 'hv001', design=svyd_wall, pfpr_wall, "hv007")
+head(clu_wall)
+
+
+#Estimate the proportion of clusters with good roof quality 
+pfpr_roof <- pfpr_df %>%  mutate(roof_type = ifelse(hv215 == 30| hv215 == 31|
+                                                      hv215 == 33| hv215 == 34|
+                                                      hv215 == 35|hv215 == 36,1, 0))
+table(pfpr_roof$roof_type)
+
+pfpr_roof<- funEnv$dataclean.para(pfpr_roof, hv005, hv005, roof_type, 'roof_type', 'house_roof') 
+table(pfpr_roof$house_roof)
+
+svyd_roof<- funEnv$svydesign.fun(pfpr_roof)
+
+clu_roof <- result.fun('house_roof', 'hv001', design=svyd_roof, pfpr_roof, "hv007")
+head(clu_roof)
+
+#Estimate of the proportion of clusters with good housing quality
+pfpr_housing<- pfpr_df %>%  mutate(floor_type = ifelse(hv214 == 30| hv214 == 31|
+                                                         hv214 == 33| hv214 == 34|
+                                                         hv214 == 35|hv214 == 36,1, 0))
+
+pfpr_housing<- pfpr_housing %>%  mutate(wall_type = ifelse(hv214 == 30| hv214 == 31|
+                                                             hv214 == 33| hv214 == 34|
+                                                             hv214 == 35|hv214 == 36,1, 0))
+
+
+pfpr_housing <- pfpr_housing %>%  mutate(roof_type = ifelse(hv215 == 30| hv215 == 31|
+                                                              hv215 == 33| hv215 == 34|
+                                                              hv215 == 35|hv215 == 36,1, 0))
+
+pfpr_housing_q <- pfpr_housing %>%  mutate(housing_q = ifelse(floor_type == 1 &
+                                                                wall_type == 1 &
+                                                                roof_type == 1,1, 0))
+
+table(pfpr_housing_q$housing_q)
+
+pfpr_housing_q<- funEnv$dataclean.para(pfpr_housing_q, hv005, hv005, housing_q, 'housing_q', 'housing_qua') 
+table(pfpr_housing_q$housing_qua)
+
+svyd_housing_q<- funEnv$svydesign.fun(pfpr_housing_q)
+
+clu_housing_q <- result.fun('housing_qua', 'hv001', design=svyd_housing_q, pfpr_housing_q, "hv007")
+head(clu_housing_q)
+
+
 # next estimate the proportion of U5 children in each cluster 
 
 look_for(dhs[[1]], "age")
@@ -100,6 +179,33 @@ svyd_u5 <- svydesign.fun(pfpr_u5)
 clu_u5_prop <- result.fun('u5_prop', 'hv001', design=svyd_u5, pfpr_u5, "hv007")
 head(clu_u5_prop)
 
+# next estimate the average age in each cluster 
+
+look_for(dhs[[1]], "age")
+summary(is.na(pfpr_dhs$hv105))
+
+pfpr_hh_members_age<- dataclean.para(pfpr_data, hv005, hv005, hv105, 'hv105', 'hh_members_age') 
+table(pfpr_hh_members_age$hh_members_age)
+
+svyd_hh_members_age <- svydesign.fun(pfpr_hh_members_age)
+table(pfpr_hh_members_age$hh_members_age)
+
+clu_hh_members_age <- svyby(~hh_members_age, ~hv001, design = svyd_hh_members_age, FUN=svymean, ci=TRUE,vartype="ci")
+head(clu_hh_members_age)
+
+# next estimate the gender proportion in each cluster 
+look_for(dhs[[1]], "sex")
+table(dhs[[1]]$hc27)
+
+pfpr_sex <- pfpr_dhs %>%  mutate(sex = ifelse(hc27 == 1,0, 1))
+pfpr_sex <- dataclean.para(pfpr_sex, hv005, hv005, hc27, 'sex', 'sex_f') 
+table(pfpr_sex$sex_f)
+
+
+svyd_sex <- svydesign.fun(pfpr_sex)
+
+clu_sex <- result.fun('sex_f', 'hv001', design=svyd_sex, pfpr_sex, "hv007")
+head(clu_sex)
 
 # estimate proportion of pregnant women in each cluster 
 look_for(dhs[[1]], "pregnant")
@@ -113,6 +219,17 @@ svyd_preg <- svydesign.fun(pfpr_preg)
 
 clu_preg <- result.fun('preg', 'hv001', design=svyd_preg, pfpr_preg, "hv007")
 head(clu_preg)
+
+#URBAN or rural
+look_for(dhs[[1]], "rural")
+table(dhs[[1]]$hv025)
+
+pfpr_rural<- pfpr_df[,c("hv001", "hv025")]
+pfpr_rural$hv025 <- pfpr_rural$Rural_urban
+colnames(pfpr_rural)[2]<- "Rural_urban"
+table(pfpr_rural$Rural_urban)
+pfpr_rural <- unique(pfpr_rural, by = "hv001")
+table(pfpr_rural$Rural_urban)
 
 # proportion with secondary or greater education 
 look_for(dhs[[1]], "education")
@@ -180,6 +297,9 @@ table(pfpr_hh_size$hh_size)
 
 clu_hh_size<- svyby(~hh_size, ~hv001, design = svyd_hh_size, FUN=svyquantile, quantiles=0.5, ci=TRUE,vartype="ci")
 head(clu_hh_size)
+
+
+
 
 # care seeking proportion among u5 children
 
@@ -277,7 +397,15 @@ all_clu <- left_join(clu_est, clu_wealth, by = "hv001") %>%
   left_join(., clu_u5_net_preg, by = "hv001") %>% 
   left_join(., clu_hh_size, by = "hv001") %>% 
   left_join(., clu_u5_care, by = "hv001") %>% 
-  left_join(., clu_pop_den, by = "hv001") 
+  left_join(., clu_pop_den, by = "hv001") %>% 
+  left_join(., clu_hh_members_age, by = "hv001") %>%
+  left_join(., pfpr_rural, by = "hv001") %>%
+  left_join(., clu_sex, by = "hv001")
+
+
+all_clu['data_source'] = 'dhs2018'
+  
+  
 
 # correlation coefficient and regression with simple linear model
 
