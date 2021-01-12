@@ -26,7 +26,7 @@ sys.source(file = file.path("C:/Users/pc/Documents/NU - Malaria Modeling/Non Lin
 options(survey.lonely.psu="adjust") # this option allows admin units with only one cluster to be analyzed
 
 #reading files
-temp_vap_18 <- read.csv("temp_vapour_2018_20201216.csv")
+temp_vap_18 <- read.csv("mis_10_temp_vapour.csv")
 dhs <-  read.csv("dhsclusters_20201214.csv")
 
 
@@ -41,10 +41,10 @@ temp_vap_18_humid <- temp_vap_18 %>%
 colnames(temp_vap_18_humid)[colnames(temp_vap_18_humid) == 'DHSCLUST'] <- 'hv001'
 humid_df <- temp_vap_18_humid[,c("hv001","humidindex")]
 
-joiner <- left_join(dhs, humid_df, by = "hv001") 
+joiner <- left_join(Joiner8, humid_df, by = "hv001") 
 final2018 <- as.data.frame(joiner)
 
-write.csv(final2018, "dhs2018clusters_final.csv")
+write.csv(final2018, "mis2010clusters_final_20210109.csv")
 
 
 

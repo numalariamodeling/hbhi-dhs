@@ -28,10 +28,10 @@ sys.source(file = file.path("C:/Users/pc/Documents/NU - Malaria Modeling/Non Lin
 options(survey.lonely.psu="adjust") # this option allows admin units with only one cluster to be analyzed
 
 
-dhs <- list.files(pattern = ".*MISPR.*\\.DTA", recursive = F, full.names = TRUE)
+dhs <- list.files(pattern = ".*MIS2010PR.*\\.DTA", recursive = F, full.names = TRUE)
 dhs <- sapply(dhs, read_dta, simplify = F)
 
-dhs2 <- list.files(pattern = ".*MISKR.*\\.DTA", recursive = F, full.names = TRUE)
+dhs2 <- list.files(pattern = ".*MIS2010KR.*\\.DTA", recursive = F, full.names = TRUE)
 dhs2 <- sapply(dhs2, read_dta, simplify = F)
 # clean and select pfpr data 
 
@@ -403,9 +403,9 @@ all_clu_mis <- left_join(clu_est, clu_wealth, by = "hv001") %>%
   left_join(., pfpr_rural, by = "hv001") %>%
   left_join(., clu_sex, by = "hv001")
 
-all_clu_mis['data_source'] = 'mis2015'
+all_clu_mis['data_source'] = 'mis2010'
 
-write.csv(all_clu_mis, "mis2015clusters_20201214.csv")
+write.csv(all_clu_mis, "mis2010clusters_20210109.csv")
 
 # correlation coefficient and regression with simple linear model
 

@@ -17,8 +17,6 @@ setwd("C:/Users/pc/Box/NU-malaria-team/data/nigeria_dhs/data_analysis/data")
 dat0 <- read.csv("Nigeria_2010_2018_clustered_final_dataset.csv", 
                 header = T, sep = ',')
 
-dat0$preg <- ifelse(is.na(dat0$preg), 0,dat0$preg)
-
 print(names(dat0))
 
 urbandataset <- dat0 %>% filter(Rural_urban == 1)
@@ -28,14 +26,17 @@ comineddataset <- dat0
 
 #replace dat0 with either urbandataset, ruraldataset, or comineddataset
 
-dat1 = ruraldataset[,c("p_test", "wealth_2", "edu_a", "u5_prop", "preg", 
+dat1 = ruraldataset[c("p_test", "wealth_2", "edu_a", "u5_prop", "preg", 
               "net_use_u5", "net_use_preg", "hh_size", "ACT_use_u5", "pop_den", 
               "hh_members_age", "sex_f", "humidindex", "Rural_urban")]
-glimpse(dat1)
-is.na(dat1)
+
 # Binarize response:
-dat1$p_test
-dat1$y <- ifelse(dat1$p_test < 0.1, 0,1)
+dat1 <- dat1 %>% filter(p_test != "NA")
+levels <- c(-2, (median(dat1$p_test)), 1)
+labels <- c(0, 1)
+dat1 <- dat1 %>% mutate(y = cut(p_test, levels, labels = labels))
+dat1 <- dat1[!is.na(dat1$y), ]
+dat1$y = as.factor(dat1$y)
 
 
 table(dat1$y)
@@ -67,7 +68,7 @@ round(pval_ms, 3)
 plot_summs(gfit0, scale = TRUE, plot.distributions = TRUE)
 
 
-# high malaria prevalence risk as a function of wealth: 
+# high malria prevalence risk as a function of wealth: 
 x1 = data.frame(sex_f = 0:1, wealth_2 = 0:1)
 plot(predict(gfit0, x1, type = "response"), 
      type = 'l', xlab = "wealth_2", ylab = "High malaria prevalence")
@@ -76,37 +77,32 @@ lines(predict(gfit0, x2, type = "response"), col="red")
 
 # Train different models on imputed data:
 #socioeconomic
-gfit1a <- glm(y ~ edu_a + wealth_2 + hh_size + pop_den + sex_f + hh_members_age,
+gfit1a <- glm(y ~ edu_a + wealth_2 + hh_size + pop_den + sex_f + hh_members_age + edu_a*wealth_2,
              data = dat1, binomial)
 
 #behavioral 
-gfit1b <- glm(y ~ net_use_u5 + net_use_preg + ACT_use_u5, data = dat1, binomial)
+gfit1b <- glm(y ~ net_use_u5 + net_use_preg + + ACT_use_u5 + ACT_use_u5*net_use_u5, data = dat1, binomial)
 
 #climatic and social 
 gfit1c <- glm(y ~ edu_a + wealth_2 + hh_size + pop_den + sex_f + hh_members_age +
-                humidindex, data = dat1, binomial)
+                humidindex + edu_a*wealth_2, data = dat1, binomial)
 
 #behavioral and social 
 gfit1d <- glm(y ~ edu_a + wealth_2 + hh_size + pop_den + sex_f + hh_members_age
-              + net_use_u5 + net_use_preg + ACT_use_u5, data = dat1, binomial)
+              + net_use_u5 + net_use_preg + ACT_use_u5 + edu_a*wealth_2 + net_use_u5*edu_a, data = dat1, binomial)
 
 #behavioral, climatic, and social 
 gfit1e <- glm(y ~ edu_a + wealth_2 + hh_size + pop_den + sex_f + hh_members_age
-              + net_use_u5 + net_use_preg + ACT_use_u5 + humidindex, data = dat1, binomial)
+              + net_use_u5 + net_use_preg + ACT_use_u5 + humidindex + net_use_u5*edu_a, data = dat1, binomial)
 
-#interactions
-gfit1i <- glm(y ~ edu_a + wealth_2 + hh_size + pop_den + sex_f + hh_members_age
-              + net_use_u5 + edu_a*pop_den + ACT_use_u5 + humidindex, data = dat1, binomial)
 
 # Compare fits:
-export_summs(gfit1a, gfit1b, gfit1c, gfit1d, gfit1e, gfit1i, scale = F, error_format = "[{conf.low}, {conf.high}]", 
-             digits = 3, model.names = c("model 1a", "model 1b", "model 1c", "model 1d", "model 1e", "model 1i"))
+export_summs(gfit1a, gfit1b, gfit1c, gfit1d, gfit1e, scale = F, error_format = "[{conf.low}, {conf.high}]", 
+             digits = 3, model.names = c("model 1a", "model 1b", "model 1c", "model 1d", "model 1e"))
 
-plot_summs(gfit1a, gfit1b, gfit1c, gfit1d, gfit1e, gfit1i, scale = TRUE, plot.distributions = F, 
-           inner_ci_level = .95, model.names = c("model 1a", "model 1b", "model 1c", "model 1d", "model 1e", "model 1i"))
+plot_summs(gfit1a, gfit1b, gfit1c, gfit1d, gfit1e, scale = TRUE, plot.distributions = F, 
+           inner_ci_level = .95, model.names = c("model 1a", "model 1b", "model 1c", "model 1d", "model 1e"))
 
-#plotting odds ratios
-plot_models(gfit1a, gfit1b, gfit1c, gfit1d, gfit1e, gfit1i, std.est = "std2")
 
 # Create reduced dataset for model 2:
 # (filter out rows with NA values)
@@ -123,45 +119,39 @@ table(dat2$y)
 # Train models:
 
 #socioeconomic
-gfit2a <- glm(y ~ edu_a + wealth_2 + hh_size + pop_den + sex_f + hh_members_age,
+gfit2a <- glm(y ~ edu_a + wealth_2 + hh_size + pop_den + sex_f + hh_members_age + edu_a*wealth_2,
               data = dat2, binomial)
 
 #behavioral 
-gfit2b <- glm(y ~ net_use_u5 + net_use_preg + ACT_use_u5, data = dat2, binomial)
+gfit2b <- glm(y ~ net_use_u5 + net_use_preg + + ACT_use_u5 + ACT_use_u5*net_use_u5, data = dat2, binomial)
 
 #climatic and social 
 gfit2c <- glm(y ~ edu_a + wealth_2 + hh_size + pop_den + sex_f + hh_members_age +
-                      humidindex, data = dat2, binomial)
+                      humidindex + edu_a*wealth_2, data = dat2, binomial)
 
 #behavioral and social 
 gfit2d <- glm(y ~ edu_a + wealth_2 + hh_size + pop_den + sex_f + hh_members_age
-              + net_use_u5 + net_use_preg + ACT_use_u5, data = dat2, binomial)
+              + net_use_u5 + net_use_preg + ACT_use_u5 + edu_a*wealth_2 + net_use_u5*edu_a, data = dat2, binomial)
 
 #behavioral, climatic, and social 
 gfit2e <- glm(y ~ edu_a + wealth_2 + hh_size + pop_den + sex_f + hh_members_age
-              + net_use_u5 + net_use_preg + ACT_use_u5 + humidindex, data = dat2, binomial)
+              + net_use_u5 + net_use_preg + ACT_use_u5 + humidindex + net_use_u5*edu_a, data = dat2, binomial)
 
-#interactions
-gfit2i <- glm(y ~ edu_a + wealth_2 + hh_size + pop_den + sex_f + hh_members_age
-              + edu_a*pop_den + net_use_preg + ACT_use_u5 + humidindex, data = dat2, binomial)
 
 # Merge model summaries:
-export_summs(gfit2a, gfit2b, gfit2c, gfit2d, gfit2e, gfit2i, scale = F, error_format = "[{conf.low}, {conf.high}]", 
-             digits = 3,  model.names = c("model 2a", "model 2b", "model 2c", "model 2d", "model 2e", "model 2i"))
+export_summs(gfit2a, gfit2b, gfit2c, gfit2d, gfit2e, scale = F, error_format = "[{conf.low}, {conf.high}]", 
+             digits = 3,  model.names = c("model 2a", "model 2b", "model 2c", "model 2d", "model 2e"))
 
 # Compare asymptotic distributions of coefficients:
-plot_summs(gfit2a, gfit2b, gfit2c, gfit2d, gfit2e, gfit2i, scale = TRUE, plot.distributions = F, 
-           inner_ci_level = .95, model.names = c("model 2a", "model 2b", "model 2c", "model 2d", "model 2e", "model 2i"))
+plot_summs(gfit2a, gfit2b, gfit2c, gfit2d, gfit2e, scale = TRUE, plot.distributions = F, 
+           inner_ci_level = .95, model.names = c("model 2a", "model 2b", "model 2c", "model 2d", "model 2e"))
 
-#plotting odds ratios
-plot_models(gfit2a, gfit2b, gfit2c, gfit2d, gfit2e, std.est = "std2")
 
 #------------------------------------------------------------------
 # Model interpretation
 #------------------------------------------------------------------
 #odds ratio confidence intervals
 exp(confint(gfit2e))
-
 
 #------------------------------------------------------------------
 ### Model diagnostics 
