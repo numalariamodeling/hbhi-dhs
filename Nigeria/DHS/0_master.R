@@ -53,7 +53,7 @@ colnames(state_sf)[4] <- "State"
 # LGA shape file
 LGAshp <- readOGR(file.path(DataDir,"Nigeria_LGAs_shapefile_191016"), layer ="NGA_LGAs", use_iconv=TRUE, encoding= "UTF-8")
 LGA_clean_names <- clean_LGA_2(file.path(DataDir,"Nigeria_LGAs_shapefile_191016"), file.path(BinDir,"names/LGA_shp_pop_names.csv"))
-
+class(LGA_clean_names)
 
 
 

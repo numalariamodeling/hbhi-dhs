@@ -57,4 +57,17 @@ generate.PR.state_LGA_repDS <- function(df, var1, var2){
 }
 
 
+#cluster mapping
+tmap.clu <- function(adminfile,ptsfile,bubble_col, title) {
+  tm_shape(adminfile) + #this is the health district shapfile with DS estimates info
+    tm_polygons()+
+    tm_shape(ptsfile)+ #this is the points shape file with LLIN and number of kids info by cluster 
+    tm_bubbles(col = bubble_col, size = 0.6,
+               border.col= "black", palette="seq",textNA = "Missing",
+               breaks=c(0, 0.2, 0.3,0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0), legend.col.show=T)+
+    tm_layout(aes.palette = list(seq ="-RdYlBu"), title = title)+
+    tm_legend(legend.title.size = 0.8, legend.just="top")
+}
+
+
 #
