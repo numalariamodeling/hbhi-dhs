@@ -160,7 +160,7 @@ plot_models(gfit2a, gfit2b, gfit2c, gfit2d, gfit2e, std.est = "std2")
 # Model interpretation
 #------------------------------------------------------------------
 #odds ratio confidence intervals
-exp(confint(gfit2e))
+
 
 
 #------------------------------------------------------------------
