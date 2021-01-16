@@ -40,6 +40,10 @@ dat1$y <- ifelse(dat1$p_test < 0.1, 0,1)
 
 table(dat1$y)
 
+dat1 <- dat1 %>% mutate(pop_den = na_if(pop_den, -9999))
+dat1 <- dat1 %>% mutate(log_pop_den = log(pop_den))
+nearZeroVar(dat1)
+
 # Plot missing values:
 aggr(dat1, col = c('green','red'), numbers = TRUE, sortVars = TRUE, 
      labels = names(dat1), cex.axis = .5, gap = 2, 
@@ -75,35 +79,39 @@ x2 = data.frame(sex_f = 0:1, wealth_2=0:1)
 lines(predict(gfit0, x2, type = "response"), col="red")
 
 # Train different models on imputed data:
-#socioeconomic
-gfit1a <- glm(y ~ edu_a + wealth_2 + hh_size + pop_den + sex_f + hh_members_age,
+#social 
+gfit1a <- glm(y ~ edu_a + wealth_2 + hh_size + sex_f + hh_members_age,
              data = dat1, binomial)
 
-#behavioral 
+#interventions
 gfit1b <- glm(y ~ net_use_u5 + net_use_preg + ACT_use_u5, data = dat1, binomial)
 
-#climatic and social 
-gfit1c <- glm(y ~ edu_a + wealth_2 + hh_size + pop_den + sex_f + hh_members_age +
+
+#environment 
+gfit1c <- glm(y ~ humidindex, data = dat1, binomial)
+
+#social and interventions 
+gfit2d <- glm(y ~ edu_a + wealth_2 + hh_size + log_pop_den + sex_f + hh_members_age
+              + net_use_u5 + net_use_preg + ACT_use_u5, data = dat2, binomial)
+
+# social and environment
+gfit1e <- glm(y ~ edu_a + wealth_2 + hh_size + log_pop_den + sex_f + hh_members_age +
                 humidindex, data = dat1, binomial)
 
-#behavioral and social 
-gfit1d <- glm(y ~ edu_a + wealth_2 + hh_size + pop_den + sex_f + hh_members_age
-              + net_use_u5 + net_use_preg + ACT_use_u5, data = dat1, binomial)
+#environment and interventions
+gfit1f <- glm(y ~ net_use_u5 + net_use_preg + ACT_use_u5 + humidindex, data = dat1, binomial)
 
-#behavioral, climatic, and social 
-gfit1e <- glm(y ~ edu_a + wealth_2 + hh_size + pop_den + sex_f + hh_members_age
+#Social, environment and interventions
+gfit1g <- glm(y ~ edu_a + wealth_2 + hh_size + log_pop_den + sex_f + hh_members_age
               + net_use_u5 + net_use_preg + ACT_use_u5 + humidindex, data = dat1, binomial)
 
-#interactions
-gfit1i <- glm(y ~ edu_a + wealth_2 + hh_size + pop_den + sex_f + hh_members_age
-              + net_use_u5 + edu_a*pop_den + ACT_use_u5 + humidindex, data = dat1, binomial)
 
 # Compare fits:
-export_summs(gfit1a, gfit1b, gfit1c, gfit1d, gfit1e, gfit1i, scale = F, error_format = "[{conf.low}, {conf.high}]", 
-             digits = 3, model.names = c("model 1a", "model 1b", "model 1c", "model 1d", "model 1e", "model 1i"))
+export_summs(gfit1a, gfit1b, gfit1c, gfit1d, gfit1e, gfit1f, gfit1g, scale = F, error_format = "[{conf.low}, {conf.high}]", 
+             digits = 3, model.names = c("Social ", "Interventions", "Environment ", "Social and interventions", "Social and environment", "Environment and interventions", "Social, environment and interventions"))
 
-plot_summs(gfit1a, gfit1b, gfit1c, gfit1d, gfit1e, gfit1i, scale = TRUE, plot.distributions = F, 
-           inner_ci_level = .95, model.names = c("model 1a", "model 1b", "model 1c", "model 1d", "model 1e", "model 1i"))
+plot_summs(gfit1a, gfit1b, gfit1c, gfit1d, gfit1e, gfit1f, gfit1g, scale = TRUE, plot.distributions = F, 
+           inner_ci_level = .95, model.names = c("Social ", "Interventions", "Environment ", "Social and interventions", "Social and environment", "Environment and interventions", "Social, environment and interventions"))
 
 #plotting odds ratios
 plot_models(gfit1a, gfit1b, gfit1c, gfit1d, gfit1e, gfit1i, std.est = "std2")

@@ -4,7 +4,7 @@ x <- c("tidyverse", "survey", "haven", "ggplot2", "purrr", "summarytools", "stri
        "fuzzyjoin", "splitstackshape", "magrittr", "caTools", "ggcorrplot", "hrbrthemes", "reshape", "caret", 
        "clusterSim", "gridExtra", "MASS", "effects", "pscl", "pROC", "car", "nnet", "reshape2", "AER", "MNLpred",
        "scales", "sjPlot", "sjlabelled", "sjmisc", "mi", "mice", "mitools", "VIM", "jtools", "huxtable", "jtools",
-       "gridExtra", "broom.mixed", " randomGLM", "ROCR", "AER", "caretEnsemble", "klaR", "naniar")
+       "gridExtra", "broom.mixed", " randomGLM", "ROCR", "AER", "caretEnsemble", "klaR", "naniar", "corrplot")
 
 lapply(x, library, character.only = TRUE) #applying the library function to packages
 
@@ -28,7 +28,8 @@ comineddataset <- dat0
 
 dat1 = ruraldataset[,c("p_test", "wealth_2", "edu_a", "u5_prop", "preg", 
                       "net_use_u5", "net_use_preg", "hh_size", "ACT_use_u5", "pop_den", 
-                      "hh_members_age", "sex_f", "humidindex", "Rural_urban")]
+                      "hh_members_age", "sex_f", "humidindex", "Rural_urban", "rainfal", "annual_precipitation")]
+
 
 # Binarize response:
 dat1$y <- ifelse(dat1$p_test < 0.1, 0,1)
@@ -45,49 +46,80 @@ table(dat2$p_level)
 
 dat2 = dat2[,c("y", "wealth_2", "edu_a", "preg", 
                       "net_use_u5", "net_use_preg", "hh_size", "ACT_use_u5", "pop_den", 
-                      "hh_members_age", "sex_f", "humidindex")]
+                      "hh_members_age", "sex_f", "humidindex", "rainfal", "annual_precipitation")]
 #dat2[which(dat2$pop_den<0),]
 
 dat2 <- dat2 %>% mutate(pop_den = na_if(pop_den, -9999))
 dat2 <- dat2 %>% mutate(log_pop_den = log(pop_den))
 nearZeroVar(dat2)
 
+#colmatrix
+ggcorrplot(round(cor(dat2[ ,(colnames(dat2) 
+                             %in% c("wealth_2", "edu_a", "preg", 
+                                    "net_use_u5", "net_use_preg", "hh_size", "ACT_use_u5", "log_pop_den", 
+                                    "hh_members_age", "sex_f", "humidindex", "rainfal", "annual_precipitation"))]), 1), 
+           type = "lower", 
+           lab = TRUE, 
+           title = 'Correlation matrix between variables')
 
-#imodel
-gfit1i <- glm(y ~ edu_a + wealth_2 +  hh_size+ sex_f + hh_members_age
-              + net_use_u5 + net_use_preg + ACT_use_u5 + humidindex, data = dat2, binomial)
-summary(gfit1i)
+# Train different models on imputed data:
+#social 
+gfit1a <- glm(y ~ edu_a + wealth_2 + hh_size + sex_f + hh_members_age + log_pop_den,
+              data = dat2, binomial)
 
-#imodel
-gfit1j <- glm(y ~ edu_a + wealth_2 +  hh_size+ sex_f + hh_members_age
-              + net_use_u5 + net_use_preg + ACT_use_u5 + humidindex + log_pop_den + log_pop_den*edu_a, data = dat2, binomial)
-summary(gfit1j)
+#interventions
+gfit1b <- glm(y ~ net_use_u5 + net_use_preg + ACT_use_u5, data = dat2, binomial)
 
-#imodel
-gfit1k <- glm(y ~ edu_a + wealth_2 +  hh_size+ sex_f + hh_members_age
-              + net_use_u5 + net_use_preg + ACT_use_u5 + humidindex + log_pop_den, data = dat2, binomial)
-summary(gfit1k)
-#imodel
-gfit1l <- glm(y ~ edu_a + wealth_2 +  hh_size+ sex_f + hh_members_age
-              + net_use_u5 + net_use_preg + ACT_use_u5 + humidindex + log_pop_den*edu_a, data = dat2, binomial)
 
-summary(gfit1l)
+#environment 
+gfit1c <- glm(y ~ humidindex +  annual_precipitation, data = dat2, binomial)
 
-df1 <- as.data.frame(exp(coef(gfit1i)))
-df2 <- as.data.frame(exp(coef(gfit1j)))
-df3 <- as.data.frame(exp(coef(gfit1k)))
-df4 <- as.data.frame(exp(coef(gfit1l)))
+#social and interventions 
+gfit1d <- glm(y ~ edu_a + wealth_2 + hh_size + log_pop_den + sex_f + hh_members_age
+              + net_use_u5 + net_use_preg + ACT_use_u5, data = dat2, binomial)
 
-odds_df <- merge(df1,df2, by="row.names", all=TRUE)
+# social and environment
+gfit1e <- glm(y ~ edu_a + wealth_2 + hh_size + log_pop_den + sex_f + hh_members_age +
+                  humidindex + annual_precipitation, data = dat2, binomial)
+
+#environment and interventions
+gfit1f <- glm(y ~ net_use_u5 + net_use_preg + ACT_use_u5 + humidindex + annual_precipitation, data = dat2, binomial)
+
+#Social, environment and interventions
+gfit1g <- glm(y ~ edu_a + wealth_2 + hh_size + log_pop_den + sex_f + hh_members_age
+              + net_use_u5 + net_use_preg + ACT_use_u5 + humidindex + annual_precipitation, data = dat2, binomial)
+
+
+
+# Comparing fits estimates:
+export_summs(gfit1a, gfit1b, gfit1c, gfit1d, gfit1e, gfit1f, gfit1g, scale = F, error_format = "[{conf.low}, {conf.high}]", 
+             digits = 3, model.names = c("Social ", "Interventions", "Environment ", "Social and interventions", "Social and environment", "Environment and interventions", "Social, environment and interventions"))
+
+
+
+#computing odds ratios
+odd_a <- as.data.frame(exp(coef(gfit1a)))
+odd_b  <- as.data.frame(exp(coef(gfit1b)))
+odd_c  <- as.data.frame(exp(coef(gfit1c)))
+odd_d  <- as.data.frame(exp(coef(gfit1d)))
+odd_e  <- as.data.frame(exp(coef(gfit1e)))
+odd_f  <- as.data.frame(exp(coef(gfit1f)))
+odd_g  <- as.data.frame(exp(coef(gfit1g)))
+
+#Creating dataframe forcomputed odd ratios
+odds_df <- merge(odd_a,odd_b, by="row.names", all=TRUE)
 odds_df <- odds_df %>% remove_rownames %>% column_to_rownames(var="Row.names")
-odds_df <- merge(odds_df,df3, by="row.names", all=TRUE)
+odds_df <- merge(odds_df,odd_c, by="row.names", all=TRUE)
 odds_df <- odds_df %>% remove_rownames %>% column_to_rownames(var="Row.names")
-odds_df <- merge(odds_df,df4, by="row.names", all=TRUE)
+odds_df <- merge(odds_df,odd_d, by="row.names", all=TRUE)
+odds_df <- odds_df %>% remove_rownames %>% column_to_rownames(var="Row.names")
+odds_df <- merge(odds_df,odd_e, by="row.names", all=TRUE)
+odds_df <- odds_df %>% remove_rownames %>% column_to_rownames(var="Row.names")
+odds_df <- merge(odds_df,odd_f, by="row.names", all=TRUE)
+odds_df <- odds_df %>% remove_rownames %>% column_to_rownames(var="Row.names")
+odds_df <- merge(odds_df,odd_g, by="row.names", all=TRUE)
 odds_df <- odds_df %>% remove_rownames %>% column_to_rownames(var="Row.names")
 odds_df
-# Compare fits:
-export_summs(gfit1i, gfit1j, gfit1k, gfit1l, scale = F, error_format = "[{conf.low}, {conf.high}]", 
-             digits = 3, model.names = c("gfit1i", "gfit1j", "gfit1k", "gfit1l"))
 
 dat2$y <- factor(dat2$y)
 levels(dat2$y)=c("Yes","No")
