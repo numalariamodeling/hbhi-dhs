@@ -47,6 +47,8 @@ table(dat2$p_level)
 dat2 = dat2[,c("y", "wealth_2", "edu_a", "preg", 
                       "net_use_u5", "net_use_preg", "hh_size", "ACT_use_u5", "pop_den", 
                       "hh_members_age", "sex_f", "humidindex", "rainfal", "annual_precipitation")]
+
+dat2 <- dat2%>% mutate(annual_precipitation = scale(dat2$annual_precipitation, center = T))
 #dat2[which(dat2$pop_den<0),]
 
 dat2 <- dat2 %>% mutate(pop_den = na_if(pop_den, -9999))

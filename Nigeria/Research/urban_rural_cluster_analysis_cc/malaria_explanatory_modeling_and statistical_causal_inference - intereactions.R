@@ -4,7 +4,7 @@ x <- c("tidyverse", "survey", "haven", "ggplot2", "purrr", "summarytools", "stri
        "fuzzyjoin", "splitstackshape", "magrittr", "caTools", "ggcorrplot", "hrbrthemes", "reshape", "caret", 
        "clusterSim", "gridExtra", "MASS", "effects", "pscl", "pROC", "car", "nnet", "reshape2", "AER", "MNLpred",
        "scales", "sjPlot", "sjlabelled", "sjmisc", "mi", "mice", "mitools", "VIM", "jtools", "huxtable", "jtools",
-       "gridExtra", "broom.mixed", " randomGLM", "ROCR", "AER")
+       "gridExtra", "broom.mixed", "randomGLM", "ROCR", "AER")
 
 lapply(x, library, character.only = TRUE) #applying the library function to packages
 

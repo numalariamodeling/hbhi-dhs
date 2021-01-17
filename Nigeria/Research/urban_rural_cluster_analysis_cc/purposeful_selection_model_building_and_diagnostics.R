@@ -4,7 +4,8 @@ x <- c("tidyverse", "survey", "haven", "ggplot2", "purrr", "summarytools", "stri
        "fuzzyjoin", "splitstackshape", "magrittr", "caTools", "ggcorrplot", "hrbrthemes", "reshape", "caret", 
        "clusterSim", "gridExtra", "MASS", "effects", "pscl", "pROC", "car", "nnet", "reshape2", "AER", "MNLpred",
        "scales", "sjPlot", "sjlabelled", "sjmisc", "mi", "mice", "mitools", "VIM", "jtools", "huxtable", "jtools",
-       "gridExtra", "broom.mixed", " randomGLM", "ROCR", "AER", "caretEnsemble", "klaR", "naniar", "corrplot", "lmtest")
+       "gridExtra", "broom.mixed", "randomGLM", "ROCR", "caretEnsemble", "klaR", "naniar", "corrplot", 
+       "lmtest", "Deducer", "lattice", "ResourceSelection")
 
 lapply(x, library, character.only = TRUE) #applying the library function to packages
 
@@ -266,7 +267,7 @@ round(delta_coef_10, 3)
 lrtest(model1g, model10)
 
 #multivariable model comparisons adding  humidindex
-model1h <- glm(y ~ edu_a + sex_f + net_use_preg + net_use_u5 + hh_members_age + log_pop_den + hh_size + wealth_2
+model1h <- glm(y ~ edu_a + sex_f +  humidindex + net_use_preg + net_use_u5 + hh_members_age + log_pop_den + hh_size + wealth_2
                + annual_precipitation, data = dat2, binomial)
 
 model11 <- glm(y ~ edu_a + sex_f +  humidindex, data = dat2, binomial) 
@@ -280,8 +281,8 @@ round(delta_coef_11, 3)
 
 lrtest(model1h, model11)
 
-#multivariable model comparisons adding  humidindex
-model1i <- glm(y ~ edu_a + sex_f + annual_precipitation + net_use_preg + net_use_u5 + hh_members_age + log_pop_den + hh_size + wealth_2, data = dat2, binomial)
+#multivariable model comparisons adding  annual_precipitation
+model1i <- glm(y ~ edu_a + sex_f + annual_precipitation +  humidindex + net_use_preg + net_use_u5 + hh_members_age + log_pop_den + hh_size + wealth_2, data = dat2, binomial)
 
 model12 <- glm(y ~ edu_a + sex_f + annual_precipitation, data = dat2, binomial) 
 summary(model12)
@@ -302,3 +303,73 @@ anova(model1i, model12, test = "Chisq")
 par(mfrow = c(2,2))
 pr<-(1/(1+exp(-z)))
 scatter.smooth(dat2$y~dat2$edu_a)
+
+
+####################################################################
+#########Step four: interactions among covariates#########
+model1j <- glm(y ~ edu_a + sex_f + edu_a*sex_f + annual_precipitation +  humidindex + net_use_preg + net_use_u5 + hh_members_age + log_pop_den + hh_size + wealth_2, data = dat2, binomial)
+summary(model1j)
+
+model11 <- glm(y ~ edu_a + sex_f + edu_a*sex_f, data = dat2, binomial) 
+summary(model11)
+
+delta_coef_12 <- abs((coef(model12)-coef(model1j)[1:4])/
+                       coef(model1j)[1:4]) 
+
+round(delta_coef_12, 3)
+
+
+lrtest(model1j, model12)
+
+
+##final model
+
+model13 <- glm(y ~ edu_a + sex_f + edu_a*sex_f +  humidindex, data = dat2, binomial) 
+summary(model13)
+
+#####################################################
+#####Step five: Assessing fit of the model###
+
+hoslem.test(model13$y,fitted(model13))
+
+#The P value >0.5, indicates that there is no significant difference between observed and predicted value
+
+Predprob<-predict(model13,type="response")
+plot(Predprob,jitter(as.numeric(dat2$y),0.5),cex=0.5,ylab="Jittered malaraia prevalence outcome")
+
+
+#histogram
+#Histogram of estimated probability of death, stratified by observed outcome.
+dat3 <-dat2 %>% mutate(predprobs = predict(model1,type="response"))
+pred_0 <- dat3 %>% filter(y == 0)
+pred_1 <- dat3 %>% filter(y == 1)
+par(
+        mfrow=c(1,2),
+        mar=c(4,4,1,0)
+)
+
+hist(pred_0$predprobs, breaks=30 , xlim=c(0,1) , col=rgb(1,0,0,0.5) , xlab="Low prevalence predicted probabilities", ylab="Frequency" , main="" )
+hist(pred_1$predprobs, breaks=30 , xlim=c(0,1) , col=rgb(0,0,1,0.5) , xlab="High prevalence predicted probabilities" , ylab="Frequency", main="")
+
+
+hist(dat3$predprobs)
+
+
+#roc
+rocplot(model13)
+prob2a=predict(model13,type=c("response")) 
+prob2a <- as.data.frame(prob2a)
+dat2a <- dat2[,c("y", "edu_a", "pop_den", "sex_f")]
+pred2a <- prediction(prob2a, dat2a$y)    
+perf2a <- performance(pred2a, measure = "tpr", x.measure = "fpr")     
+plot(perf2a, col="red", main="ROC curve High malaria prevalence", xlab="Specificity", 
+     ylab="Sensitivity")    
+abline(0, 1) #adds a 45 degree line
+
+
+
+############fitstat##################
+
+
+residualPlots(model2)
+
