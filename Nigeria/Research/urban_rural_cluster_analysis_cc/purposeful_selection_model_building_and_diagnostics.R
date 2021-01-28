@@ -29,7 +29,7 @@ comineddataset <- dat0
 
 dat1 = ruraldataset[,c("p_test", "wealth_2", "edu_a", "net_use_u5", "net_use_preg", "hh_size",
                        "ACT_use_u5", "pop_den","hh_members_age", "sex_f", "humidindex",
-                       "rainfal", "annual_precipitation")]
+                       "rainfal", "annual_precipitation", "l_pop_den")]
 
 
 # Binarize response:
@@ -56,58 +56,68 @@ table(dat2$p_level)
 ######################################################################
 ####Step one: univariable analysis#####
 #wealth
-univariable_wealth <- glm(y ~ wealth_2, data = dat2, family = binomial)
+univariable_wealth <- glm(y ~ wealth_2, data = dat1, family = binomial)
 summary(univariable_wealth)
 
 #education 
-univariable_edu <- glm(y ~ edu_a, data = dat2, family = binomial)
+univariable_edu <- glm(y ~ edu_a, data = dat1, family = binomial)
 summary(univariable_edu)
 
 #net_use_u5
-univariable_net_use_u5 <- glm(y ~ net_use_u5, data = dat2, family = binomial)
+univariable_net_use_u5 <- glm(y ~ net_use_u5, data = dat1, family = binomial)
 summary(univariable_net_use_u5)
 
 #net_use_preg
-univariable_net_use_preg <- glm(y ~ net_use_preg, data = dat2, family = binomial)
+univariable_net_use_preg <- glm(y ~ net_use_preg, data = dat1, family = binomial)
 summary(univariable_net_use_preg)
 
 #hh_size
-univariable_hh_size <- glm(y ~ hh_size, data = dat2, family = binomial)
+univariable_hh_size <- glm(y ~ hh_size, data = dat1, family = binomial)
 summary(univariable_hh_size)
 
 #ACT_use_u5
-univariable_ACT_use_u5 <- glm(y ~ ACT_use_u5, data = dat2, family = binomial)
+univariable_ACT_use_u5 <- glm(y ~ ACT_use_u5, data = dat1, family = binomial)
 summary(univariable_ACT_use_u5)
 
 #pop_den
-univariable_pop_den <- glm(y ~ log_pop_den, data = dat2, family = binomial)
+univariable_pop_den <- glm(y ~ l_pop_den, data = dat1, family = binomial)
 summary(univariable_pop_den)
 
 #hh_average_age
-univariable_average_age <- glm(y ~ hh_members_age, data = dat2, family = binomial)
+univariable_average_age <- glm(y ~ hh_members_age, data = dat1, family = binomial)
 summary(univariable_average_age)
 
 #sex_f 
-univariable_sex_f <- glm(y ~ sex_f, data = dat2, family = binomial)
+univariable_sex_f <- glm(y ~ sex_f, data = dat1, family = binomial)
 summary(univariable_sex_f)
 
 #humidindex
-univariable_humidindex <- glm(y ~ humidindex, data = dat2, family = binomial)
+univariable_humidindex <- glm(y ~ humidindex, data = dat1, family = binomial)
 summary(univariable_humidindex)
 
 #annual_precipitation
-univariable_prec <- glm(y ~ annual_precipitation, data = dat2, family = binomial)
+univariable_prec <- glm(y ~ annual_precipitation, data = dat1, family = binomial)
 summary(univariable_prec)
 
 
 # Comparing fits estimates:
-export_summs(univariable_wealth, univariable_edu, univariable_net_use_u5, univariable_net_use_preg, univariable_hh_size, 
+export_summs(univariable_edu, univariable_wealth, univariable_net_use_u5, univariable_net_use_preg, univariable_hh_size, 
              univariable_ACT_use_u5, univariable_pop_den, univariable_average_age, univariable_sex_f, univariable_humidindex, univariable_prec, scale = F, error_format = "[{conf.low}, {conf.high}]", 
-             digits = 3, model.names = c("% wealth", "% education", "% u5 net use", "% preg net use", "household size", "% ACT use u5", 
+             digits = 3, model.names = c("% education", "% wealth", "% u5 net use", "% preg net use", "household size", "% ACT use u5", 
                                          "population density", "average household age", "% female", "humidity index", "annual precipitation"))
 
+# Compare asymptotic distributions of coefficients:
+plot_summs(univariable_edu, univariable_wealth, univariable_net_use_u5, univariable_net_use_preg, univariable_hh_size, 
+           univariable_ACT_use_u5, univariable_pop_den, scale = TRUE, plot.distributions = F, 
+           inner_ci_level = .95, model.names = c("% of high education", "% high wealth quantile", "% u5 net use", "% preg net use", "household size", "% ACT use u5", 
+                                                 "population density"))
 
-#multivariable model comparisons
+
+# Compare asymptotic distributions of coefficients:
+plot_summs(univariable_average_age, univariable_sex_f, univariable_humidindex, univariable_prec,  scale = TRUE, plot.distributions = F, 
+           inner_ci_level = .95, model.names = c("average household age", "% female", "humidity index", "annual precipitation"))
+
+########################multivariable model comparisons####################################
 model1 <- glm(y ~ edu_a + sex_f + wealth_2 + hh_size + log_pop_den  + hh_members_age
               + net_use_u5 + net_use_preg + ACT_use_u5 + humidindex + annual_precipitation, data = dat2, binomial)
 summary(model1)
@@ -251,26 +261,27 @@ round(delta_coef_9, 3)
 
 lrtest(model1f, model9)
 
+
+
 #multivariable model comparisons adding  humidindex
-model1g <- glm(y ~ edu_a + sex_f + humidindex+ net_use_preg + net_use_u5 + hh_members_age + log_pop_den + hh_size + wealth_2
+model1g <- glm(y ~ edu_a + sex_f +  humidindex + net_use_preg + net_use_u5 + hh_members_age + log_pop_den + hh_size + wealth_2
                + annual_precipitation, data = dat2, binomial)
 
 model10 <- glm(y ~ edu_a + sex_f +  humidindex, data = dat2, binomial) 
 summary(model10)
 
-delta_coef_10 <- abs((coef(model9)-coef(model1g)[1:4])/
-                      coef(model1g)[1:4]) 
+delta_coef_10 <- abs((coef(model10)-coef(model1g)[1:4])/
+                       coef(model1g)[1:4]) 
 
 round(delta_coef_10, 3)
 
 
 lrtest(model1g, model10)
 
-#multivariable model comparisons adding  humidindex
-model1h <- glm(y ~ edu_a + sex_f +  humidindex + net_use_preg + net_use_u5 + hh_members_age + log_pop_den + hh_size + wealth_2
-               + annual_precipitation, data = dat2, binomial)
+#multivariable model comparisons adding  annual_precipitation
+model1h <- glm(y ~ edu_a + sex_f + annual_precipitation +  humidindex + net_use_preg + net_use_u5 + hh_members_age + log_pop_den + hh_size + wealth_2, data = dat2, binomial)
 
-model11 <- glm(y ~ edu_a + sex_f +  humidindex, data = dat2, binomial) 
+model11 <- glm(y ~ edu_a + sex_f + annual_precipitation, data = dat2, binomial) 
 summary(model11)
 
 delta_coef_11 <- abs((coef(model11)-coef(model1h)[1:4])/
@@ -281,58 +292,269 @@ round(delta_coef_11, 3)
 
 lrtest(model1h, model11)
 
-#multivariable model comparisons adding  annual_precipitation
-model1i <- glm(y ~ edu_a + sex_f + annual_precipitation +  humidindex + net_use_preg + net_use_u5 + hh_members_age + log_pop_den + hh_size + wealth_2, data = dat2, binomial)
+anova(model1h, model11, test = "Chisq")
 
-model12 <- glm(y ~ edu_a + sex_f + annual_precipitation, data = dat2, binomial) 
-summary(model12)
+
+#Comparing fits estimates:
+export_summs(model2, model3, model4, model5, model6,model7, model8, model9, model10, model11, scale = F, error_format = "[{conf.low}, {conf.high}]", 
+             digits = 3, model.names = c("significant model", "% wealth", "household size", "population density", "average household age",
+                                         "% u5 net use", "% preg net use",  "% ACT use u5", "humidity index", "annual precipitation"))
+
+# Compare asymptotic distributions of coefficients:
+plot_summs(model2, model3, model4, model5, model6,model7, model8, scale = TRUE, plot.distributions = F, 
+           inner_ci_level = .95, model.names = c("% of high education included", "% high wealth quantile included", "% u5 net use included", "% preg net use included", "household size included", "% ACT use u5 included", 
+                                                 "population density included"))
+
+
+# Compare asymptotic distributions of coefficients:
+plot_summs(model9, model10, model11,  scale = TRUE, plot.distributions = F, 
+           inner_ci_level = .95, model.names = c("% ACT use u5 included", "humidity index included", "annual precipitation included"))
+########################### adding more variable to the model that had at least 2% change in coeficients###########
+#multivariable model comparisons
+
+
+
+
+
+#multivariable model comparisons adding wealth
+#new base model
+model2_b <- glm(y ~ edu_a + sex_f + humidindex, data = dat2, binomial) 
+
+model1i_a <- glm(y ~ edu_a + sex_f + humidindex + wealth_2 + annual_precipitation + net_use_preg + net_use_u5 + hh_members_age + log_pop_den + hh_size, data = dat2, binomial)
+
+model3_a <- glm(y ~ edu_a + sex_f + humidindex + wealth_2, data = dat2, binomial) 
+
+
+delta_coef_3_a <- abs((coef(model3_a)-coef(model1i_a)[1:5])/
+                            coef(model1i_a)[1:5]) 
+
+round(delta_coef_3, 3)
+
+
+lrtest(model1i, model3_a)
+
+#multivariable model comparisons adding hh_size 
+model1a_a <- glm(y ~ edu_a + sex_f + humidindex + hh_size + wealth_2 + log_pop_den  + hh_members_age
+               + net_use_u5 + net_use_preg + ACT_use_u5 + annual_precipitation, data = dat2, binomial)
+summary(model1a_a)
+
+model4_a <- glm(y ~ edu_a + sex_f + humidindex + hh_size , data = dat2, binomial) 
+summary(model4_a)
+
+delta_coef_4_a <- abs((coef(model4_a)-coef(model1a_a)[1:5])/
+                            coef(model1a_a)[1:5]) 
+
+round(delta_coef_4_a, 3)
+
+
+lrtest(model1a_a, model4_a)
+
+#multivariable model comparisons adding log_pop_den 
+model1b_a <- glm(y ~ edu_a + sex_f + humidindex + log_pop_den + hh_size + wealth_2  + hh_members_age
+               + net_use_u5 + net_use_preg + ACT_use_u5 + annual_precipitation, data = dat2, binomial)
+summary(model1b_a)
+
+model5_a <- glm(y ~ edu_a + sex_f + humidindex + log_pop_den, data = dat2, binomial) 
+summary(model5_a)
+
+delta_coef_5_a <- abs((coef(model5_a)-coef(model1b_a)[1:5])/
+                            coef(model1b_a)[1:5]) 
+
+round(delta_coef_5_a, 3)
+
+
+lrtest(model1b_a, model5_a)
+
+
+
+#multivariable model comparisons adding hh_members_age
+model1c_a <- glm(y ~ edu_a + sex_f + humidindex + hh_members_age + log_pop_den + hh_size + wealth_2
+               + net_use_u5 + net_use_preg + ACT_use_u5 + annual_precipitation, data = dat2, binomial)
+summary(model1a_a)
+
+model6_a <- glm(y ~ edu_a + sex_f + humidindex + hh_members_age, data = dat2, binomial) 
+summary(model5_a)
+
+delta_coef_6_a <- abs((coef(model6_a)-coef(model1c_a)[1:5])/
+                            coef(model1c_a)[1:5]) 
+
+round(delta_coef_6_a, 3)
+
+
+lrtest(model1c_a, model6_a)
+
+#multivariable model comparisons adding net_use_u5 
+model1d_a <- glm(y ~ edu_a + sex_f + humidindex + net_use_u5 + hh_members_age + log_pop_den + hh_size + wealth_2
+               +  net_use_preg + ACT_use_u5 + annual_precipitation, data = dat2, binomial)
+summary(model1d_a)
+
+model7_a <- glm(y ~ edu_a + sex_f + humidindex + net_use_u5, data = dat2, binomial) 
+summary(model7_a)
+
+delta_coef_7_a <- abs((coef(model7_a)-coef(model1d_a)[1:5])/
+                            coef(model1d_a)[1:5]) 
+
+round(delta_coef_7_a, 3)
+
+
+lrtest(model1d_a, model7_a)
+
+#multivariable model comparisons adding net_use_preg  
+model1e_a <- glm(y ~ edu_a + sex_f + humidindex + net_use_preg + net_use_u5 + hh_members_age + log_pop_den + hh_size + wealth_2
+               + ACT_use_u5 + annual_precipitation, data = dat2, binomial)
+summary(model1e_a)
+
+model8_a <- glm(y ~ edu_a + sex_f + humidindex + net_use_preg, data = dat2, binomial) 
+summary(model8)
+
+delta_coef_8_a <- abs((coef(model8_a)-coef(model1e_a)[1:5])/
+                            coef(model1e_a)[1:5]) 
+
+round(delta_coef_8_a, 3)
+
+
+lrtest(model1e_a, model8_a)
+
+
+#multivariable model comparisons adding net_use_preg  
+model1e_a <- glm(y ~ edu_a + sex_f + humidindex + net_use_preg + net_use_u5 + hh_members_age + log_pop_den + hh_size + wealth_2
+               + ACT_use_u5 + annual_precipitation, data = dat2, binomial)
+summary(model1e_a)
+
+model8_a <- glm(y ~ edu_a + sex_f + humidindex + net_use_preg, data = dat2, binomial) 
+summary(model8_a)
+
+delta_coef_8_a <- abs((coef(model8_a)-coef(model1e_a)[1:5])/
+                            coef(model1e_a)[1:5]) 
+
+round(delta_coef_8_a, 3)
+
+
+lrtest(model1e_a, model8_a)
+
+#multivariable model comparisons adding ACT_use_u5  
+model1f_a <- glm(y ~ edu_a + sex_f + humidindex + net_use_preg + net_use_u5 + hh_members_age + log_pop_den + hh_size + wealth_2
+               + annual_precipitation, data = dat2, binomial)
+
+model9_a <- glm(y ~ edu_a + sex_f + humidindex + ACT_use_u5, data = dat2, binomial) 
+summary(model9_a)
+
+delta_coef_9_a <- abs((coef(model9_a)-coef(model1f_a)[1:5])/
+                            coef(model1f_a)[1:5]) 
+
+round(delta_coef_9_a, 3)
+
+
+lrtest(model1f_a, model9_a)
+
+
+
+#multivariable model comparisons adding interaction
+model1g_a <- glm(y ~ edu_a + sex_f + humidindex + edu_a*sex_f + net_use_preg + net_use_u5 + hh_members_age + log_pop_den + hh_size + wealth_2
+               + annual_precipitation, data = dat2, binomial)
+
+model10_a <- glm(y ~ edu_a + sex_f + humidindex +  edu_a*sex_f, data = dat2, binomial) 
+summary(model10_a)
+
+delta_coef_10_a <- abs((coef(model10_a)-coef(model1g_a)[1:5])/
+                             coef(model1g_a)[1:5]) 
+
+round(delta_coef_10_a, 3)
+
+
+lrtest(model1g_a, model10_a)
+
+#multivariable model comparisons adding  annual_precipitation
+model1h_a <- glm(y ~ edu_a + sex_f + humidindex + annual_precipitation + net_use_preg + net_use_u5 + hh_members_age + log_pop_den + hh_size + wealth_2, data = dat2, binomial)
+
+model11_a <- glm(y ~ edu_a + sex_f + humidindex + annual_precipitation, data = dat2, binomial) 
+summary(model11_a)
+
+delta_coef_11_a <- abs((coef(model11_a)-coef(model1h_a)[1:5])/
+                             coef(model1h_a)[1:5]) 
+
+round(delta_coef_11, 3)
+
+
+lrtest(model1h_a, model11_a)
+
+anova(model1h_a, model11_a, test = "Chisq")
+
+
+
+#Comparing fits estimates:
+export_summs(model2_b, model3_a, model4_a, model5_a, model6_a, 
+             model7_a, model8, model9_a, model10_a, model11_a, scale = F, error_format = "[{conf.low}, {conf.high}]", 
+             digits = 3, model.names = c("significant model with humidity index", "% wealth", "household size", "population density", "average household age",
+                                         "% u5 net use", "% preg net use",  "% ACT use u5", "Edu:sex interaction", "annual precipitation"))
+
+# Compare asymptotic distributions of coefficients:
+plot_summs(model2_b, model3_a, model4_a, model5_a, model6_a, scale = TRUE, plot.distributions = F, 
+           inner_ci_level = .95, model.names = c("significant model with humidity index", "% wealth", "household size", "population density", "average household age"))
+
+# Compare asymptotic distributions of coefficients:
+plot_summs(model7_a, model8, model9_a, model11_a, scale = TRUE, plot.distributions = F, 
+           inner_ci_level = .95, model.names = c("% u5 net use", "% preg net use",  "% ACT use u5", "annual precipitation"))
+
+
+#final model
+model13 <- glm(y ~ edu_a + wealth_2 + sex_f + humidindex + hh_members_age + net_use_u5 + log_pop_den + ACT_use_u5 + 
+               hh_size + log_pop_den + hh_size, data = dat2, binomial) 
+summary(model13)
+
+
+####################################################################
+#checking for linearity assumption
+# Select only numeric predictors
+
+dat3 = dat2[,c("wealth_2", "edu_a", "net_use_u5", "net_use_preg", "hh_size",
+               "ACT_use_u5", "pop_den","hh_members_age", "sex_f", "humidindex")]
+
+probabilities <- predict(model13, type = "response")
+
+mydata <- dat3 %>%
+        dplyr::select_if(is.numeric) 
+predictors <- colnames(mydata)
+# Bind the logit and tidying the data for plot
+mydata <- mydata %>%
+        mutate(logit = log(probabilities/(1-probabilities))) %>%
+        gather(key = "predictors", value = "predictor.value", -logit)
+
+
+ggplot(mydata, aes(logit, predictor.value))+
+        geom_point(size = 0.5, alpha = 0.5) +
+        geom_smooth(method = "loess") + 
+        theme_bw() + 
+        facet_wrap(~predictors, scales = "free")
+
+
+####################################################################
+#########Step four: interactions among covariates#########
+model1i <- glm(y ~ edu_a + sex_f + edu_a*sex_f  + wealth_2 + annual_precipitation +  humidindex + net_use_preg + net_use_u5 + hh_members_age + log_pop_den + hh_size, data = dat2, binomial)
+summary(model1j)
+
+
 
 delta_coef_12 <- abs((coef(model12)-coef(model1i)[1:4])/
-                       coef(model1i)[1:4]) 
+                             coef(model1i)[1:4]) 
 
 round(delta_coef_12, 3)
 
 
 lrtest(model1i, model12)
 
-anova(model1i, model12, test = "Chisq")
-
-
-####################################################################
-#checking for linearity assumption
-par(mfrow = c(2,2))
-pr<-(1/(1+exp(-z)))
-scatter.smooth(dat2$y~dat2$edu_a)
-
-
-####################################################################
-#########Step four: interactions among covariates#########
-model1j <- glm(y ~ edu_a + sex_f + edu_a*sex_f + annual_precipitation +  humidindex + net_use_preg + net_use_u5 + hh_members_age + log_pop_den + hh_size + wealth_2, data = dat2, binomial)
-summary(model1j)
-
-model11 <- glm(y ~ edu_a + sex_f + edu_a*sex_f, data = dat2, binomial) 
-summary(model11)
-
-delta_coef_12 <- abs((coef(model12)-coef(model1j)[1:4])/
-                       coef(model1j)[1:4]) 
-
-round(delta_coef_12, 3)
-
-
-lrtest(model1j, model12)
-
 
 ##final model
 
-model13 <- glm(y ~ edu_a + sex_f + edu_a*sex_f +  humidindex, data = dat2, binomial) 
-summary(model13)
+#model13 <- glm(y ~ edu_a + sex_f + edu_a*sex_f +  humidindex, data = dat2, binomial) 
+#summary(model13)
 
 #####################################################
 #####Step five: Assessing fit of the model###
 
 hoslem.test(model13$y,fitted(model13))
 
-#The P value >0.5, indicates that there is no significant difference between observed and predicted value
+#The P value > 0.5, indicates that there is no significant difference between observed and predicted value
 
 Predprob<-predict(model13,type="response")
 plot(Predprob,jitter(as.numeric(dat2$y),0.5),cex=0.5,ylab="Jittered malaraia prevalence outcome")
@@ -356,7 +578,6 @@ hist(dat3$predprobs)
 
 
 #roc
-rocplot(model13)
 prob2a=predict(model13,type=c("response")) 
 prob2a <- as.data.frame(prob2a)
 dat2a <- dat2[,c("y", "edu_a", "pop_den", "sex_f")]
@@ -369,7 +590,24 @@ abline(0, 1) #adds a 45 degree line
 
 
 ############fitstat##################
+fitstats2(model2)
 
+###################Residuals and regression diagnostics########
 
 residualPlots(model2)
 
+#
+marginalModelPlots(model2)
+
+#Outliers
+outlierTest(model2)
+
+#Leverage
+influenceIndexPlot(model2)
+
+#influence 
+influencePlot(model2, col = "red",id.n=3)
+
+#We can examine the change of coefficient by removing these influential observations.
+model2351 <- update(model2,subset=c(-351))
+compareCoefs(model2,model2351)

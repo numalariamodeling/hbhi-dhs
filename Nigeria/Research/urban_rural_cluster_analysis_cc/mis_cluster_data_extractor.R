@@ -28,10 +28,10 @@ sys.source(file = file.path("C:/Users/pc/Documents/NU - Malaria Modeling/Non Lin
 options(survey.lonely.psu="adjust") # this option allows admin units with only one cluster to be analyzed
 
 
-dhs <- list.files(pattern = ".*MIS2010PR.*\\.DTA", recursive = F, full.names = TRUE)
+dhs <- list.files(pattern = ".*MIS2015PR.*\\.DTA", recursive = F, full.names = TRUE)
 dhs <- sapply(dhs, read_dta, simplify = F)
 
-dhs2 <- list.files(pattern = ".*MIS2010KR.*\\.DTA", recursive = F, full.names = TRUE)
+dhs2 <- list.files(pattern = ".*MIS2015KR.*\\.DTA", recursive = F, full.names = TRUE)
 dhs2 <- sapply(dhs2, read_dta, simplify = F)
 # clean and select pfpr data 
 
