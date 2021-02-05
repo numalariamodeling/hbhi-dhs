@@ -1,4 +1,4 @@
-#rm(list=ls())
+rm(list=ls())
 
 #important to download the github version of tidyverse.Uncomment the script below to run
 #install.packages("devtools") #download devtools if is not available in your packages 
@@ -19,11 +19,11 @@ lapply(x, library, character.only = TRUE) #applying the library function to pack
 
 
 # set document path to current script path 
-setwd("C:/Users/Admin/Documents/NU - Malaria Modeling/Non Linear")
+setwd("C:/Users/pc/Documents/NU - Malaria Modeling/Non Linear")
 
 # reads in functions so we can alias it using funenv$
 funEnv <- new.env()
-sys.source(file = file.path("C:/Users/Admin/Documents/NU - Malaria Modeling/Non Linear", "Nigeria functions.R"), 
+sys.source(file = file.path("C:/Users/pc/Documents/NU - Malaria Modeling/Non Linear", "Nigeria functions.R"), 
            envir = funEnv, toplevel.env = funEnv)
 
 
@@ -55,10 +55,10 @@ pfpr_df <- pfpr_data %>% filter(hv042 == 1 & hv103 == 1 & hc1 %in% c(6:59) & hml
 
 val_labels(pfpr_df$hv025) # value labels for place of residence, 1 = urban and 2 = rural
 
-pfpr_place <- pfpr_df %>% filter(hv025 == 1)
-pfpr_dhs <- pfpr_data%>% filter(hv025 == 1)
-#pfpr_place <- pfpr_df
-#pfpr_dhs <- pfpr_data
+#pfpr_place <- pfpr_df %>% filter(hv025 == 1)
+#pfpr_dhs <- pfpr_data%>% filter(hv025 == 1)
+pfpr_place <- pfpr_df
+pfpr_dhs <- pfpr_data
 # estimate cluster-level malaria prevalence
 
 pfpr_place<- funEnv$dataclean.para(pfpr_place, hv005, hc1, hml32, 'hml32', 'p_test') 
@@ -85,7 +85,7 @@ table(pfpr_dhs_u5$net_use_u5)
 
 # estimate proportion of pregnant women in each cluster 
 look_for(dhs[[1]], "pregnant")
-table(dhs[[1]]$sh09)
+table(dhs[[1]]$ha54)
 
 pfpr_dhs_preg <- pfpr_dhs_u5 %>%  mutate(preg = ifelse(hv104 != 2, NA, ifelse(hml16 %in% c(15:49) & hml18 == 1|0, 1, 0)))
 

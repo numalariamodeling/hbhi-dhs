@@ -5,13 +5,13 @@ x <- c("tidyverse", "survey", "haven", "ggplot2", "purrr", "summarytools", "stri
        "lubridate", "RColorBrewer","sf", "shinyjs", "tmap", "knitr", "labelled", "plotrix", "arules", "foreign",
        "fuzzyjoin", "splitstackshape", "magrittr", "caTools", "ggcorrplot", "hrbrthemes", "reshape", "caret", 
        "clusterSim", "gridExtra", "MASS", "effects", "pscl", "pROC", "car", "nnet", "reshape2", "AER", "MNLpred",
-       "scales", "sjPlot", "sjlabelled", "sjmisc", "mudata2", "mapview")
+       "scales", "sjPlot", "sjlabelled", "sjmisc", "mudata2", "mapview", "INLA")
 
 lapply(x, library, character.only = TRUE) #applying the library function to packages
 
 
 # set document path to current script path 
-main_path<- "C:/Users/ido0493/Box/NU-malaria-team/data/nigeria_dhs/data_analysis"
+main_path<- "C:/Users/pc/Box/NU-malaria-team/data/nigeria_dhs/data_analysis"
 
 setwd(main_path)
 
