@@ -1,4 +1,4 @@
-#This script processes simulation output to generate percent change in outcomes with a 2015, 2020 and 2019 baseline at the state and national level in Burkina
+#This script processes simulation output to generate percent change in outcomes with a 2015, 2020 and 2019 baseline at the state and national level in Nigeria
 # Created by Ifeoma Ozodiegwu 
 
 
