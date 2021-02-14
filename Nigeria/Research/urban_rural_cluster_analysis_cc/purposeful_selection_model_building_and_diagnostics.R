@@ -29,7 +29,7 @@ comineddataset <- dat0
 
 dat1 = ruraldataset[,c("p_test", "wealth_2", "edu_a", "net_use_u5", "net_use_preg", "hh_size",
                        "ACT_use_u5", "pop_den","hh_members_age", "sex_f", "humidindex",
-                       "rainfal", "annual_precipitation", "l_pop_den")]
+                       "rainfal", "annual_precipitation", "l_pop_den", "housing_qua")]
 
 
 # Binarize response:
@@ -39,12 +39,13 @@ dat1$y <- ifelse(dat1$p_test < 0.1, 0,1)
 
 dat2 = dat1[,c("y", "wealth_2", "edu_a", "net_use_u5", "net_use_preg", "hh_size",
                "ACT_use_u5", "pop_den","hh_members_age", "sex_f", "humidindex",
-               "rainfal", "annual_precipitation")]
+               "rainfal", "annual_precipitation", "housing_qua")]
 
 dat2 <- dat2%>% mutate(annual_precipitation = scale(dat2$annual_precipitation, center = T))
 #dat2[which(dat2$pop_den<0),]
 
 dat2 <- dat2 %>% mutate(pop_den = na_if(pop_den, -9999))
+dat2$annual_precipitation <- replace(dat2$annual_precipitation, which(dat2$annual_precipitation < 0), NA)
 dat2 <- dat2 %>% mutate(log_pop_den = log(pop_den))
 nearZeroVar(dat2)
 
@@ -108,192 +109,176 @@ export_summs(univariable_edu, univariable_wealth, univariable_net_use_u5, univar
 
 # Compare asymptotic distributions of coefficients:
 plot_summs(univariable_edu, univariable_wealth, univariable_net_use_u5, univariable_net_use_preg, univariable_hh_size, 
-           univariable_ACT_use_u5, univariable_pop_den, scale = TRUE, plot.distributions = F, 
-           inner_ci_level = .95, model.names = c("% of high education", "% high wealth quantile", "% u5 net use", "% preg net use", "household size", "% ACT use u5", 
-                                                 "population density"))
+           univariable_ACT_use_u5, univariable_pop_den, univariable_average_age, univariable_sex_f, univariable_humidindex, univariable_prec, scale = TRUE, colors = "Rainbow", plot.distributions = F, 
+           inner_ci_level = .95, model.names = c())
 
-
-# Compare asymptotic distributions of coefficients:
-plot_summs(univariable_average_age, univariable_sex_f, univariable_humidindex, univariable_prec,  scale = TRUE, plot.distributions = F, 
-           inner_ci_level = .95, model.names = c("average household age", "% female", "humidity index", "annual precipitation"))
 
 ########################multivariable model comparisons####################################
-model1 <- glm(y ~ edu_a + sex_f + wealth_2 + hh_size + log_pop_den  + hh_members_age
-              + net_use_u5 + net_use_preg + ACT_use_u5 + humidindex + annual_precipitation, data = dat2, binomial)
+model1 <- glm(y ~ edu_a + sex_f +  annual_precipitation + wealth_2 + hh_size + log_pop_den  + hh_members_age
+              + net_use_u5 + net_use_preg + ACT_use_u5 + humidindex, data = dat2, binomial)
+
 summary(model1)
 
-model2 <- glm(y ~ edu_a + sex_f, data = dat2, binomial) 
+model2 <- glm(y ~ edu_a + sex_f + annual_precipitation, data = dat2, binomial) 
 
 
-delta_coef <- abs((coef(model2)-coef(model1)[1:3])/
-                    coef(model1)[1:3]) 
+delta_coef_significant <- abs((coef(model2)-coef(model1)[1:4])/
+                    coef(model1)[1:4]) 
 
-round(delta_coef, 3)
+delta_coef_significant <- as.data.frame(round(delta_coef_significant, 3))
 
 
-lrtest(model1, model2)
 
+lrtest1 <- as.data.frame(lrtest(model1, model2))
+lrtest1$model <- "sig_model"
 
 #multivariable model comparisons adding wealth
 
-model3 <- glm(y ~ edu_a + sex_f + wealth_2 , data = dat2, binomial) 
+model3 <- glm(y ~ edu_a + sex_f + + annual_precipitation + wealth_2 , data = dat2, binomial) 
 
 
-delta_coef_3 <- abs((coef(model3)-coef(model1)[1:4])/
-                    coef(model1)[1:4]) 
+delta_coef_wealth <- abs((coef(model3)-coef(model1)[1:5])/
+                    coef(model1)[1:5]) 
 
-round(delta_coef_3, 3)
+delta_coef_wealth <- as.data.frame(round(delta_coef_wealth, 3))
 
+lrtest3 <- as.data.frame(lrtest(model2, model3))
+lrtest3$model <- "wealth_model"
 
-lrtest(model1, model3)
 
 #multivariable model comparisons adding hh_size 
-model1a <- glm(y ~ edu_a + sex_f + hh_size + wealth_2 + log_pop_den  + hh_members_age
-              + net_use_u5 + net_use_preg + ACT_use_u5 + humidindex + annual_precipitation, data = dat2, binomial)
+model1a <- glm(y ~ edu_a + sex_f  + annual_precipitation + hh_size + wealth_2 + log_pop_den  + hh_members_age
+              + net_use_u5 + net_use_preg + ACT_use_u5 + humidindex, data = dat2, binomial)
 summary(model1a)
 
-model4 <- glm(y ~ edu_a + sex_f + hh_size , data = dat2, binomial) 
+model4 <- glm(y ~ edu_a + sex_f  + annual_precipitation + hh_size , data = dat2, binomial) 
 summary(model4)
 
-delta_coef_4 <- abs((coef(model4)-coef(model1a)[1:4])/
-                      coef(model1a)[1:4]) 
+delta_coef_hh_size <- abs((coef(model4)-coef(model1a)[1:5])/
+                      coef(model1a)[1:5]) 
 
-round(delta_coef_4, 3)
+delta_coef_hh_size <- as.data.frame(round(delta_coef_hh_size, 3))
 
 
-lrtest(model1a, model4)
+lrtest4 <- as.data.frame(lrtest(model2, model4))
+lrtest4$model <- "hh_size_model"
 
 #multivariable model comparisons adding log_pop_den 
-model1b <- glm(y ~ edu_a + sex_f + log_pop_den + hh_size + wealth_2  + hh_members_age
-               + net_use_u5 + net_use_preg + ACT_use_u5 + humidindex + annual_precipitation, data = dat2, binomial)
+model1b <- glm(y ~ edu_a + sex_f + annual_precipitation + log_pop_den + hh_size + wealth_2  + hh_members_age
+               + net_use_u5 + net_use_preg + ACT_use_u5 + humidindex, data = dat2, binomial)
 summary(model1a)
 
-model5 <- glm(y ~ edu_a + sex_f + log_pop_den, data = dat2, binomial) 
+model5 <- glm(y ~ edu_a + sex_f + annual_precipitation + log_pop_den, data = dat2, binomial) 
 summary(model5)
 
-delta_coef_5 <- abs((coef(model5)-coef(model1b)[1:4])/
-                      coef(model1b)[1:4]) 
+delta_coef_pop_den <- abs((coef(model5)-coef(model1b)[1:5])/
+                      coef(model1b)[1:5]) 
 
-round(delta_coef_5, 3)
+delta_coef_pop_den <- as.data.frame(round(delta_coef_pop_den, 3))
 
 
-lrtest(model1b, model5)
-
+lrtest5 <- as.data.frame(lrtest(model2, model5))
+lrtest5$model <- "pop_den_model"
 
 
 #multivariable model comparisons adding hh_members_age
-model1c <- glm(y ~ edu_a + sex_f + hh_members_age + log_pop_den + hh_size + wealth_2
-               + net_use_u5 + net_use_preg + ACT_use_u5 + humidindex + annual_precipitation, data = dat2, binomial)
+model1c <- glm(y ~ edu_a + sex_f + annual_precipitation + hh_members_age + log_pop_den + hh_size + wealth_2
+               + net_use_u5 + net_use_preg + ACT_use_u5 + humidindex, data = dat2, binomial)
 summary(model1a)
 
-model6 <- glm(y ~ edu_a + sex_f + hh_members_age, data = dat2, binomial) 
+model6 <- glm(y ~ edu_a + sex_f + annual_precipitation + hh_members_age, data = dat2, binomial) 
 summary(model5)
 
-delta_coef_6 <- abs((coef(model6)-coef(model1c)[1:4])/
-                      coef(model1c)[1:4]) 
+delta_coef_hh_age <- abs((coef(model6)-coef(model1c)[1:5])/
+                      coef(model1c)[1:5]) 
 
-round(delta_coef_6, 3)
+delta_coef_hh_age <- as.data.frame(round(delta_coef_hh_age, 3))
 
 
-lrtest(model1c, model6)
+lrtest6 <- as.data.frame(lrtest(model2, model6))
+lrtest6$model <- "hh_age_model"
 
 #multivariable model comparisons adding net_use_u5 
-model1d <- glm(y ~ edu_a + sex_f + net_use_u5 + hh_members_age + log_pop_den + hh_size + wealth_2
-               +  net_use_preg + ACT_use_u5 + humidindex + annual_precipitation, data = dat2, binomial)
+model1d <- glm(y ~ edu_a + sex_f  + annual_precipitation + net_use_u5 + hh_members_age + log_pop_den + hh_size + wealth_2
+               +  net_use_preg + ACT_use_u5 + humidindex, data = dat2, binomial)
 summary(model1d)
 
-model7 <- glm(y ~ edu_a + sex_f + net_use_u5, data = dat2, binomial) 
+model7 <- glm(y ~ edu_a + sex_f  + annual_precipitation + net_use_u5, data = dat2, binomial) 
 summary(model7)
 
-delta_coef_7 <- abs((coef(model7)-coef(model1d)[1:4])/
-                      coef(model1d)[1:4]) 
+delta_coef_net_u5 <- abs((coef(model7)-coef(model1d)[1:5])/
+                      coef(model1d)[1:5]) 
 
-round(delta_coef_7, 3)
-
-
-lrtest(model1d, model7)
-
-#multivariable model comparisons adding net_use_preg  
-model1e <- glm(y ~ edu_a + sex_f + net_use_preg + net_use_u5 + hh_members_age + log_pop_den + hh_size + wealth_2
-               + ACT_use_u5 + humidindex + annual_precipitation, data = dat2, binomial)
-summary(model1e)
-
-model8 <- glm(y ~ edu_a + sex_f + net_use_preg, data = dat2, binomial) 
-summary(model8)
-
-delta_coef_8 <- abs((coef(model8)-coef(model1e)[1:4])/
-                      coef(model1e)[1:4]) 
-
-round(delta_coef_8, 3)
+delta_coef_net_u5 <- as.data.frame(round(delta_coef_net_u5, 3))
 
 
-lrtest(model1e, model8)
-
+lrtest7 <- as.data.frame(lrtest(model2, model7))
+lrtest7$model <- "u5_net_model"
 
 #multivariable model comparisons adding net_use_preg  
-model1e <- glm(y ~ edu_a + sex_f + net_use_preg + net_use_u5 + hh_members_age + log_pop_den + hh_size + wealth_2
-               + ACT_use_u5 + humidindex + annual_precipitation, data = dat2, binomial)
+model1e <- glm(y ~ edu_a + sex_f  + annual_precipitation + net_use_preg + net_use_u5 + hh_members_age + log_pop_den + hh_size + wealth_2
+               + ACT_use_u5 + humidindex, data = dat2, binomial)
 summary(model1e)
 
-model8 <- glm(y ~ edu_a + sex_f + net_use_preg, data = dat2, binomial) 
+model8 <- glm(y ~ edu_a + sex_f  + annual_precipitation + net_use_preg, data = dat2, binomial) 
 summary(model8)
 
-delta_coef_8 <- abs((coef(model8)-coef(model1e)[1:4])/
-                      coef(model1e)[1:4]) 
+delta_coef_net_preg <- abs((coef(model8)-coef(model1e)[1:5])/
+                      coef(model1e)[1:5]) 
 
-round(delta_coef_8, 3)
+delta_coef_net_preg <- as.data.frame(round(delta_coef_net_preg, 3))
 
 
-lrtest(model1e, model8)
+lrtest8 <- as.data.frame(lrtest(model2, model8))
+lrtest8$model <- "preg_net_gmodel"
+
 
 #multivariable model comparisons adding ACT_use_u5  
-model1f <- glm(y ~ edu_a + sex_f + net_use_preg + net_use_u5 + hh_members_age + log_pop_den + hh_size + wealth_2
-               + humidindex + annual_precipitation, data = dat2, binomial)
+model1f <- glm(y ~ edu_a + sex_f  + annual_precipitation + net_use_preg + net_use_u5 + hh_members_age + log_pop_den + hh_size + wealth_2
+               + humidindex, data = dat2, binomial)
 
-model9 <- glm(y ~ edu_a + sex_f + ACT_use_u5, data = dat2, binomial) 
+model9 <- glm(y ~ edu_a + sex_f  + annual_precipitation + ACT_use_u5, data = dat2, binomial) 
 summary(model9)
 
-delta_coef_9 <- abs((coef(model9)-coef(model1f)[1:4])/
-                      coef(model1f)[1:4]) 
+delta_coef_ACT <- abs((coef(model9)-coef(model1f)[1:5])/
+                      coef(model1f)[1:5]) 
 
-round(delta_coef_9, 3)
+delta_coef_ACT <- as.data.frame(round(delta_coef_ACT, 3))
 
 
-lrtest(model1f, model9)
-
+lrtest9 <- as.data.frame(lrtest(model2, model9))
+lrtest9$model <- "ACT_model"
 
 
 #multivariable model comparisons adding  humidindex
-model1g <- glm(y ~ edu_a + sex_f +  humidindex + net_use_preg + net_use_u5 + hh_members_age + log_pop_den + hh_size + wealth_2
-               + annual_precipitation, data = dat2, binomial)
+model1g <- glm(y ~ edu_a + sex_f + annual_precipitation +  humidindex + net_use_preg + net_use_u5 + hh_members_age + log_pop_den + hh_size + wealth_2, data = dat2, binomial)
 
-model10 <- glm(y ~ edu_a + sex_f +  humidindex, data = dat2, binomial) 
+model10 <- glm(y ~ edu_a + sex_f + annual_precipitation +  humidindex, data = dat2, binomial) 
 summary(model10)
 
-delta_coef_10 <- abs((coef(model10)-coef(model1g)[1:4])/
-                       coef(model1g)[1:4]) 
+delta_coef_humidindex <- abs((coef(model10)-coef(model1g)[1:5])/
+                       coef(model1g)[1:5]) 
 
-round(delta_coef_10, 3)
+delta_coef_humidindex <- as.data.frame(round(delta_coef_humidindex, 3))
 
 
-lrtest(model1g, model10)
+lrtest10 <- as.data.frame(lrtest(model2, model10))
+lrtest10$model <- "humidindex_model10"
 
-#multivariable model comparisons adding  annual_precipitation
-model1h <- glm(y ~ edu_a + sex_f + annual_precipitation +  humidindex + net_use_preg + net_use_u5 + hh_members_age + log_pop_den + hh_size + wealth_2, data = dat2, binomial)
+#multivariable model comparisons adding  hhousing q
+model1h <- glm(y ~ edu_a + sex_f + annual_precipitation +  housing_qua + net_use_preg + net_use_u5 + hh_members_age + log_pop_den + hh_size + wealth_2, data = dat2, binomial)
 
-model11 <- glm(y ~ edu_a + sex_f + annual_precipitation, data = dat2, binomial) 
+model11 <- glm(y ~ edu_a + sex_f + annual_precipitation +  housing_qua, data = dat2, binomial) 
 summary(model11)
 
-delta_coef_11 <- abs((coef(model11)-coef(model1h)[1:4])/
-                       coef(model1h)[1:4]) 
+delta_coef_housing_qua <- abs((coef(model11)-coef(model1h)[1:5])/
+                                     coef(model1h)[1:5]) 
 
-round(delta_coef_11, 3)
+delta_coef_housing_qua <- as.data.frame(round(delta_coef_housing_qua, 3))
 
 
-lrtest(model1h, model11)
-
-anova(model1h, model11, test = "Chisq")
-
+lrtest11 <- as.data.frame(lrtest(model2, model10))
+lrtest10$model <- "housing_model11"
 
 #Comparing fits estimates:
 export_summs(model2, model3, model4, model5, model6,model7, model8, model9, model10, model11, scale = F, error_format = "[{conf.low}, {conf.high}]", 
@@ -301,21 +286,112 @@ export_summs(model2, model3, model4, model5, model6,model7, model8, model9, mode
                                          "% u5 net use", "% preg net use",  "% ACT use u5", "humidity index", "annual precipitation"))
 
 # Compare asymptotic distributions of coefficients:
-plot_summs(model2, model3, model4, model5, model6,model7, model8, scale = TRUE, plot.distributions = F, 
-           inner_ci_level = .95, model.names = c("% of high education included", "% high wealth quantile included", "% u5 net use included", "% preg net use included", "household size included", "% ACT use u5 included", 
-                                                 "population density included"))
-
+plot_summs(model2, model3, model4, model5, model6,model7, model8, model9, model10, model11, scale = TRUE, colors = "Rainbow", plot.distributions = F, 
+           inner_ci_level = .95, model.names = c("significant model", "% wealth", "household size", "population density", "average household age",
+                                                 "% u5 net use", "% preg net use",  "% ACT use u5", "humidity index", "annual precipitation"))
 
 # Compare asymptotic distributions of coefficients:
-plot_summs(model9, model10, model11,  scale = TRUE, plot.distributions = F, 
-           inner_ci_level = .95, model.names = c("% ACT use u5 included", "humidity index included", "annual precipitation included"))
-########################### adding more variable to the model that had at least 2% change in coeficients###########
+plot_summs(model1, scale = TRUE, colors = "Rainbow", plot.distributions = F, 
+           inner_ci_level = .95, model.names = c( ))
+
+
+export_summs(model1, scale = F, error_format = "[{conf.low}, {conf.high}]", 
+             digits = 3, model.names = c())
+
+#Creating dataframe for computed coeficient difference 
+delta_coef_df <- merge(delta_coef_pop_den, delta_coef_wealth, by="row.names", all=TRUE)
+delta_coef_df <- delta_coef_df %>% remove_rownames %>% column_to_rownames(var="Row.names")
+delta_coef_df <- merge(delta_coef_df,delta_coef_hh_size, by="row.names", all=TRUE)
+delta_coef_df <- delta_coef_df %>% remove_rownames %>% column_to_rownames(var="Row.names")
+delta_coef_df <- merge(delta_coef_df,delta_coef_ACT, by="row.names", all=TRUE)
+delta_coef_df <- delta_coef_df %>% remove_rownames %>% column_to_rownames(var="Row.names")
+delta_coef_df <- merge(delta_coef_df,delta_coef_hh_age, by="row.names", all=TRUE)
+delta_coef_df <- delta_coef_df %>% remove_rownames %>% column_to_rownames(var="Row.names")
+delta_coef_df <- merge(delta_coef_df,delta_coef_humidindex, by="row.names", all=TRUE)
+delta_coef_df <- delta_coef_df %>% remove_rownames %>% column_to_rownames(var="Row.names")
+delta_coef_df <- merge(delta_coef_df,delta_coef_net_preg, by="row.names", all=TRUE)
+delta_coef_df <- delta_coef_df %>% remove_rownames %>% column_to_rownames(var="Row.names")
+delta_coef_df <- merge(delta_coef_df,delta_coef_net_u5, by="row.names", all=TRUE)
+#delta_coef_df <- delta_coef_df %>% remove_rownames %>% column_to_rownames(var="Row.names")
+#delta_coef_df <- merge(delta_coef_df,delta_coef_housing_qua, by="row.names", all=TRUE)
+#delta_coef_df <- delta_coef_df %>% remove_rownames %>% column_to_rownames(var="Row.names")
+delta_coef_df <- na.omit(delta_coef_df)
+delta_coef_df <- delta_coef_df[c(4), ]
+#delta_coef_df <- delta_coef_df[-c(1), ]
+
+#plot of delta_coef
+df1 <- melt(delta_coef_df,"Row.names")
+
+g1 <- ggplot(df1, aes(x = variable, y = value)) +
+        geom_bar(aes(fill= variable),stat="identity", position ="dodge") + 
+        theme_bw()+ 
+        scale_y_continuous(breaks = seq(0, 0.14, by = 0.02), limits=c(0,0.13))+
+        theme(axis.text.x = element_text(angle=-40, hjust=.1))
+
+
+g1
+
+
+
+
+
+#Creating dataframe for computed likelihod ratio
+lrtest_df <- dplyr::bind_rows(lrtest1, lrtest3, lrtest4, lrtest5, lrtest6, lrtest7, lrtest8, lrtest9, lrtest10)
+write.csv(lrtest_df, "lrtest.csv")
+######################## adding more variable to the model that had at least 2% change in coeficients###########
 #multivariable model comparisons
 
 
+########parsimonious model
+model1i_parsi <- glm(y ~ edu_a + sex_f + annual_precipitation + net_use_preg + 
+                         net_use_u5 + hh_members_age + log_pop_den + hh_size, data = dat2, binomial)
+
+cofff <- as.data.frame(coef(model1i_parsi))
+coeff5 <- cofff + (0.05/cofff)
+coeff1 <- cofff + (0.1/cofff) 
+coeff15 <- cofff + (0.15/cofff)
+coeff20 <- cofff + (0.1/cofff)
+coeff25 <- cofff + (0.1/cofff)
+coeff30 <- cofff + (0.1/cofff)
+
+
+or <- as.data.frame(exp(coef(model1i_parsi)))
+or5 <- exp(coeff5)
+or1 <- exp(coeff1)
+or15 <- exp(coeff15)
+or20 <- exp(coeff2)
+or25 <- exp(coeff25)
+or30 <- exp(coeff30)
+
+or_df <- merge(or, or5, by="row.names", all=TRUE)
+or_df <- or_df %>% remove_rownames %>% column_to_rownames(var="Row.names")
+or_df <- merge(or_df, or1, by="row.names", all=TRUE)
+or_df <- or_df %>% remove_rownames %>% column_to_rownames(var="Row.names")
+or_df <- merge(or_df, or15, by="row.names", all=TRUE)
+or_df <- or_df %>% remove_rownames %>% column_to_rownames(var="Row.names")
+or_df <- merge(or_df, or20, by="row.names", all=TRUE)
+or_df <- or_df %>% remove_rownames %>% column_to_rownames(var="Row.names")
+or_df <- merge(or_df, or25, by="row.names", all=TRUE)
+or_df <- or_df %>% remove_rownames %>% column_to_rownames(var="Row.names")
+or_df <- merge(or_df, or30, by="row.names", all=TRUE)
+or_df <- or_df %>% remove_rownames %>% column_to_rownames(var="Row.names")
 
 
 
+summary(model1i_parsi)
+pass_coefs <- as.data.frame(coef(model1i_parsi))
+pass_coefs <- as.data.frame(SE(model1i_parsi))
+pass_odds <- as.data.frame(exp(coef(model1i_parsi)))
+
+
+#comparing model with all variables and parsimonious model 
+lrtest(model1h, model1i_parsi)
+
+ddd <- export_summs(model1a, model1i_parsi, scale = F, error_format = "[{conf.low}, {conf.high}]", 
+             digits = 3, model.names = c("Model with all variables", "Parsimonious model"))
+
+
+write.csv((as.data.frame(ddd)),"comparing_parsimonious.csv")
 #multivariable model comparisons adding wealth
 #new base model
 model2_b <- glm(y ~ edu_a + sex_f + humidindex, data = dat2, binomial) 
@@ -325,13 +401,14 @@ model1i_a <- glm(y ~ edu_a + sex_f + humidindex + wealth_2 + annual_precipitatio
 model3_a <- glm(y ~ edu_a + sex_f + humidindex + wealth_2, data = dat2, binomial) 
 
 
-delta_coef_3_a <- abs((coef(model3_a)-coef(model1i_a)[1:5])/
+delta_coef_wealth_a <- abs((coef(model3_a)-coef(model1i_a)[1:5])/
                             coef(model1i_a)[1:5]) 
 
-round(delta_coef_3, 3)
+delta_coef_wealth_a <- as.data.frame(round(delta_coef_wealth_a, 3))
 
 
-lrtest(model1i, model3_a)
+lrtest1_a <- as.data.frame(lrtest(model2_b, model3_a))
+lrtest1_a$model <- "precipi_model"
 
 #multivariable model comparisons adding hh_size 
 model1a_a <- glm(y ~ edu_a + sex_f + humidindex + hh_size + wealth_2 + log_pop_den  + hh_members_age
@@ -341,13 +418,14 @@ summary(model1a_a)
 model4_a <- glm(y ~ edu_a + sex_f + humidindex + hh_size , data = dat2, binomial) 
 summary(model4_a)
 
-delta_coef_4_a <- abs((coef(model4_a)-coef(model1a_a)[1:5])/
+delta_coef_hhsize_a <- abs((coef(model4_a)-coef(model1a_a)[1:5])/
                             coef(model1a_a)[1:5]) 
 
-round(delta_coef_4_a, 3)
+delta_coef_humid_a <- as.data.frame(round(delta_coef_hhsize_a, 3))
 
 
-lrtest(model1a_a, model4_a)
+lrtest(model2_b, model4_a)
+
 
 #multivariable model comparisons adding log_pop_den 
 model1b_a <- glm(y ~ edu_a + sex_f + humidindex + log_pop_den + hh_size + wealth_2  + hh_members_age
@@ -357,10 +435,10 @@ summary(model1b_a)
 model5_a <- glm(y ~ edu_a + sex_f + humidindex + log_pop_den, data = dat2, binomial) 
 summary(model5_a)
 
-delta_coef_5_a <- abs((coef(model5_a)-coef(model1b_a)[1:5])/
+delta_coef_popden_a <- abs((coef(model5_a)-coef(model1b_a)[1:5])/
                             coef(model1b_a)[1:5]) 
 
-round(delta_coef_5_a, 3)
+delta_coef_popden_a <- as.data.frame(round(delta_coef_popden_a, 3))
 
 
 lrtest(model1b_a, model5_a)
@@ -375,10 +453,10 @@ summary(model1a_a)
 model6_a <- glm(y ~ edu_a + sex_f + humidindex + hh_members_age, data = dat2, binomial) 
 summary(model5_a)
 
-delta_coef_6_a <- abs((coef(model6_a)-coef(model1c_a)[1:5])/
+delta_coef_hhage_a <- abs((coef(model6_a)-coef(model1c_a)[1:5])/
                             coef(model1c_a)[1:5]) 
 
-round(delta_coef_6_a, 3)
+delta_coef_hhage_a<- as.data.frame(round(delta_coef_hhage_a, 3))
 
 
 lrtest(model1c_a, model6_a)
@@ -391,10 +469,10 @@ summary(model1d_a)
 model7_a <- glm(y ~ edu_a + sex_f + humidindex + net_use_u5, data = dat2, binomial) 
 summary(model7_a)
 
-delta_coef_7_a <- abs((coef(model7_a)-coef(model1d_a)[1:5])/
+delta_coef_u5net_a <- abs((coef(model7_a)-coef(model1d_a)[1:5])/
                             coef(model1d_a)[1:5]) 
 
-round(delta_coef_7_a, 3)
+delta_coef_u5net_a <- as.data.frame(round(delta_coef_u5net_a, 3))
 
 
 lrtest(model1d_a, model7_a)
@@ -407,27 +485,10 @@ summary(model1e_a)
 model8_a <- glm(y ~ edu_a + sex_f + humidindex + net_use_preg, data = dat2, binomial) 
 summary(model8)
 
-delta_coef_8_a <- abs((coef(model8_a)-coef(model1e_a)[1:5])/
+delta_coef_pregnet_a <- abs((coef(model8_a)-coef(model1e_a)[1:5])/
                             coef(model1e_a)[1:5]) 
 
-round(delta_coef_8_a, 3)
-
-
-lrtest(model1e_a, model8_a)
-
-
-#multivariable model comparisons adding net_use_preg  
-model1e_a <- glm(y ~ edu_a + sex_f + humidindex + net_use_preg + net_use_u5 + hh_members_age + log_pop_den + hh_size + wealth_2
-               + ACT_use_u5 + annual_precipitation, data = dat2, binomial)
-summary(model1e_a)
-
-model8_a <- glm(y ~ edu_a + sex_f + humidindex + net_use_preg, data = dat2, binomial) 
-summary(model8_a)
-
-delta_coef_8_a <- abs((coef(model8_a)-coef(model1e_a)[1:5])/
-                            coef(model1e_a)[1:5]) 
-
-round(delta_coef_8_a, 3)
+delta_coef_pregnet_a <- as.data.frame(round(delta_coef_pregnet_a, 3))
 
 
 lrtest(model1e_a, model8_a)
@@ -439,67 +500,96 @@ model1f_a <- glm(y ~ edu_a + sex_f + humidindex + net_use_preg + net_use_u5 + hh
 model9_a <- glm(y ~ edu_a + sex_f + humidindex + ACT_use_u5, data = dat2, binomial) 
 summary(model9_a)
 
-delta_coef_9_a <- abs((coef(model9_a)-coef(model1f_a)[1:5])/
+delta_coef_ACT_a <- abs((coef(model9_a)-coef(model1f_a)[1:5])/
                             coef(model1f_a)[1:5]) 
 
-round(delta_coef_9_a, 3)
+delta_coef_ACT_a <- as.data.frame(round(delta_coef_ACT_a, 3))
 
 
 lrtest(model1f_a, model9_a)
 
 
-
-#multivariable model comparisons adding interaction
-model1g_a <- glm(y ~ edu_a + sex_f + humidindex + edu_a*sex_f + net_use_preg + net_use_u5 + hh_members_age + log_pop_den + hh_size + wealth_2
-               + annual_precipitation, data = dat2, binomial)
-
-model10_a <- glm(y ~ edu_a + sex_f + humidindex +  edu_a*sex_f, data = dat2, binomial) 
-summary(model10_a)
-
-delta_coef_10_a <- abs((coef(model10_a)-coef(model1g_a)[1:5])/
-                             coef(model1g_a)[1:5]) 
-
-round(delta_coef_10_a, 3)
-
-
-lrtest(model1g_a, model10_a)
-
 #multivariable model comparisons adding  annual_precipitation
 model1h_a <- glm(y ~ edu_a + sex_f + humidindex + annual_precipitation + net_use_preg + net_use_u5 + hh_members_age + log_pop_den + hh_size + wealth_2, data = dat2, binomial)
 
-model11_a <- glm(y ~ edu_a + sex_f + humidindex + annual_precipitation, data = dat2, binomial) 
+model10_a <- glm(y ~ edu_a + sex_f + humidindex + annual_precipitation, data = dat2, binomial) 
 summary(model11_a)
 
-delta_coef_11_a <- abs((coef(model11_a)-coef(model1h_a)[1:5])/
+delta_coef_precip_a <- abs((coef(model10_a)-coef(model1h_a)[1:5])/
                              coef(model1h_a)[1:5]) 
 
-round(delta_coef_11, 3)
+delta_coef_precip_a <- as.data.frame(round(delta_coef_precip_a, 3))
 
 
-lrtest(model1h_a, model11_a)
+lrtest(model1h_a, model10_a)
 
 anova(model1h_a, model11_a, test = "Chisq")
 
+#multivariable model comparisons adding housing quality
+model1i_a <- glm(y ~ edu_a + sex_f + humidindex + annual_precipitation + net_use_preg + net_use_u5 + hh_members_age + log_pop_den + hh_size + wealth_2, data = dat2, binomial)
 
+model11_a <- glm(y ~ edu_a + sex_f + humidindex + housing_qua, data = dat2, binomial) 
+summary(model11_a)
+
+delta_coef_housq_a  <- abs((coef(model11_a)-coef(model1i_a)[1:5])/
+                                   coef(model1i_a)[1:5]) 
+
+delta_coef_housq_a <- as.data.frame(round(delta_coef_housq_a, 3))
+
+
+lrtest(model1i_a, model10_a)
 
 #Comparing fits estimates:
 export_summs(model2_b, model3_a, model4_a, model5_a, model6_a, 
-             model7_a, model8, model9_a, model10_a, model11_a, scale = F, error_format = "[{conf.low}, {conf.high}]", 
+             model7_a, model8, model9_a, model10_a, scale = F, error_format = "[{conf.low}, {conf.high}]", 
              digits = 3, model.names = c("significant model with humidity index", "% wealth", "household size", "population density", "average household age",
-                                         "% u5 net use", "% preg net use",  "% ACT use u5", "Edu:sex interaction", "annual precipitation"))
+                                         "% u5 net use", "% preg net use",  "% ACT use u5", "annual precipitation"))
 
 # Compare asymptotic distributions of coefficients:
-plot_summs(model2_b, model3_a, model4_a, model5_a, model6_a, scale = TRUE, plot.distributions = F, 
-           inner_ci_level = .95, model.names = c("significant model with humidity index", "% wealth", "household size", "population density", "average household age"))
+plot_summs(model2_b, model3_a, model4_a, model5_a, model6_a, model7_a, model8, model9_a, model10_a, scale = TRUE, colors = "Rainbow", plot.distributions = F, 
+           inner_ci_level = .95, model.names = c())
 
-# Compare asymptotic distributions of coefficients:
-plot_summs(model7_a, model8, model9_a, model11_a, scale = TRUE, plot.distributions = F, 
-           inner_ci_level = .95, model.names = c("% u5 net use", "% preg net use",  "% ACT use u5", "annual precipitation"))
+
+#Creating dataframe for computed coeficient difference 
+delta_coef_df_a <- merge(delta_coef_u5net_a, delta_coef_wealth_a, by="row.names", all=TRUE)
+delta_coef_df_a <- delta_coef_df_a %>% remove_rownames %>% column_to_rownames(var="Row.names")
+delta_coef_df_a <- merge(delta_coef_df_a,delta_coef_ACT_a, by="row.names", all=TRUE)
+delta_coef_df_a <- delta_coef_df_a %>% remove_rownames %>% column_to_rownames(var="Row.names")
+delta_coef_df_a <- merge(delta_coef_df_a,delta_coef_hhage_a, by="row.names", all=TRUE)
+delta_coef_df_a <- delta_coef_df_a %>% remove_rownames %>% column_to_rownames(var="Row.names")
+delta_coef_df_a <- merge(delta_coef_df_a,delta_coef_humid_a, by="row.names", all=TRUE)
+delta_coef_df_a <- delta_coef_df_a %>% remove_rownames %>% column_to_rownames(var="Row.names")
+delta_coef_df_a <- merge(delta_coef_df_a,delta_coef_popden_a, by="row.names", all=TRUE)
+delta_coef_df_a <- delta_coef_df_a %>% remove_rownames %>% column_to_rownames(var="Row.names")
+delta_coef_df_a <- merge(delta_coef_df_a,delta_coef_pregnet_a, by="row.names", all=TRUE)
+delta_coef_df_a <- delta_coef_df_a %>% remove_rownames %>% column_to_rownames(var="Row.names")
+delta_coef_df_a <- merge(delta_coef_df_a,delta_coef_precip_a, by="row.names", all=TRUE)
+#delta_coef_df_a <- delta_coef_df_a %>% remove_rownames %>% column_to_rownames(var="Row.names")
+
+
+delta_coef_df_a <- na.omit(delta_coef_df_a)
+delta_coef_df_a <- delta_coef_df_a[c(4), ]
+
+#plot of delta_coef
+df1 <- melt(delta_coef_df_a,"Row.names")
+
+p1 <- ggplot(df1, aes(x = variable, y = value)) +
+        geom_bar(aes(fill= variable),stat="identity", position ="dodge") + 
+        theme_bw()+ 
+        theme(axis.text.x = element_text(angle=-40, hjust=.1))
+
+
+p1
+
+
+#Creating dataframe for computed likelihod ratio
+lrtest_df <- dplyr::bind_rows(lrtest1_a, lrtest3_a, lrtest4_a, lrtes5_a, lrtest6_a, lrtest7_a, lrtest8_a, lrtest9_a, lrtest10_a, lrtest11_a)
+write.csv(lrtest_df, "lrtest.csv")
 
 
 #final model
-model13 <- glm(y ~ edu_a + wealth_2 + sex_f + humidindex + hh_members_age + net_use_u5 + log_pop_den + ACT_use_u5 + 
-               hh_size + log_pop_den + hh_size, data = dat2, binomial) 
+model13 <- glm(y ~ edu_a + sex_f + humidindex + net_use_preg + net_use_u5 + hh_members_age + log_pop_den + hh_size + wealth_2
+               + ACT_use_u5 + annual_precipitation, data = dat2, binomial) 
 summary(model13)
 
 
@@ -507,10 +597,9 @@ summary(model13)
 #checking for linearity assumption
 # Select only numeric predictors
 
-dat3 = dat2[,c("wealth_2", "edu_a", "net_use_u5", "net_use_preg", "hh_size",
-               "ACT_use_u5", "pop_den","hh_members_age", "sex_f", "humidindex")]
+dat3 = dat2[,c("edu_a", "net_use_u5", "net_use_preg","log_pop_den", "hh_members_age", "sex_f", "annual_precipitation")]
 
-probabilities <- predict(model13, type = "response")
+probabilities <- predict(model1i_parsi, type = "response")
 
 mydata <- dat3 %>%
         dplyr::select_if(is.numeric) 
@@ -521,7 +610,7 @@ mydata <- mydata %>%
         gather(key = "predictors", value = "predictor.value", -logit)
 
 
-ggplot(mydata, aes(logit, predictor.value))+
+ggplot(mydata, aes(predictor.value, logit))+
         geom_point(size = 0.5, alpha = 0.5) +
         geom_smooth(method = "loess") + 
         theme_bw() + 
@@ -542,6 +631,7 @@ round(delta_coef_12, 3)
 
 
 lrtest(model1i, model12)
+
 
 
 ##final model
