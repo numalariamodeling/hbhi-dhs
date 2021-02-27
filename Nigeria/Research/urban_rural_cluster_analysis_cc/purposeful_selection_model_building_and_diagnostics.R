@@ -27,19 +27,19 @@ comineddataset <- dat0
 
 #replace dat0 with either urbandataset, ruraldataset, or comineddataset
 
-dat1 = ruraldataset[,c("p_test", "wealth_2", "edu_a", "net_use_u5", "net_use_preg", "hh_size",
+dat1 = ruraldataset[,c("data_source","p_test", "wealth_2", "edu_a", "net_use_u5", "net_use_preg", "hh_size",
                        "ACT_use_u5", "pop_den","hh_members_age", "sex_f", "humidindex",
-                       "rainfal", "annual_precipitation", "l_pop_den", "housing_qua")]
+                       "rainfal", "annual_precipitation", "l_pop_den", "housing_qua", "net_access", "net_use_access")]
 
 
 # Binarize response:
 dat1$y <- ifelse(dat1$p_test < 0.1, 0,1)
-
+table(dat1$y)
 
 
 dat2 = dat1[,c("y", "wealth_2", "edu_a", "net_use_u5", "net_use_preg", "hh_size",
                "ACT_use_u5", "pop_den","hh_members_age", "sex_f", "humidindex",
-               "rainfal", "annual_precipitation", "housing_qua")]
+               "rainfal", "annual_precipitation", "housing_qua", "net_access", "net_use_access")]
 
 dat2 <- dat2%>% mutate(annual_precipitation = scale(dat2$annual_precipitation, center = T))
 #dat2[which(dat2$pop_den<0),]
@@ -52,7 +52,7 @@ nearZeroVar(dat2)
 # Create reduced dataset for model 2:
 # (filter out rows with NA values)
 dat2 <- na.omit(dat2)
-table(dat2$p_level)
+table(dat2$y)
 
 ######################################################################
 ####Step one: univariable analysis#####
@@ -116,6 +116,12 @@ plot_summs(univariable_edu, univariable_wealth, univariable_net_use_u5, univaria
 ########################multivariable model comparisons####################################
 model1 <- glm(y ~ edu_a + sex_f +  annual_precipitation + wealth_2 + hh_size + log_pop_den  + hh_members_age
               + net_use_u5 + net_use_preg + ACT_use_u5 + humidindex, data = dat2, binomial)
+
+model1 <- glm(y ~ edu_a + sex_f +  annual_precipitation + wealth_2 + hh_size + log_pop_den  + hh_members_age
+              + net_use_access + ACT_use_u5 + humidindex, data = dat2, binomial)
+
+model1 <- glm(y ~ edu_a + sex_f +  annual_precipitation + wealth_2 + hh_size + log_pop_den  + hh_members_age
+              + net_access + ACT_use_u5 + humidindex, data = dat2, binomial)
 
 summary(model1)
 
@@ -346,20 +352,24 @@ write.csv(lrtest_df, "lrtest.csv")
 model1i_parsi <- glm(y ~ edu_a + sex_f + annual_precipitation + net_use_preg + 
                          net_use_u5 + hh_members_age + log_pop_den + hh_size, data = dat2, binomial)
 
+
+mm <- glm(y ~edu_a + sex_f + annual_precipitation, data = dat2, binomial)
+summary(mm)
+
 cofff <- as.data.frame(coef(model1i_parsi))
 coeff5 <- cofff + (0.05/cofff)
 coeff1 <- cofff + (0.1/cofff) 
 coeff15 <- cofff + (0.15/cofff)
-coeff20 <- cofff + (0.1/cofff)
-coeff25 <- cofff + (0.1/cofff)
-coeff30 <- cofff + (0.1/cofff)
+coeff20 <- cofff + (0.20/cofff)
+coeff25 <- cofff + (0.25/cofff)
+coeff30 <- cofff + (0.3/cofff)
 
 
 or <- as.data.frame(exp(coef(model1i_parsi)))
 or5 <- exp(coeff5)
 or1 <- exp(coeff1)
 or15 <- exp(coeff15)
-or20 <- exp(coeff2)
+or20 <- exp(coeff20)
 or25 <- exp(coeff25)
 or30 <- exp(coeff30)
 
