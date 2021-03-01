@@ -282,6 +282,52 @@ svyd_itn_preg <- svydesign.fun(pfpr_itn_preg)
 clu_u5_net_preg <- result.fun('net_use_preg', 'hv001', design=svyd_itn_preg, pfpr_itn, "hv007")
 head(clu_u5_net_preg)
 
+#net access use 
+pfpr_itn_acuse <- pfpr_data %>% filter(hv227 == 1) %>%  
+  mutate(net_use = ifelse(hml12 %in% c(1,2), 1,0))
+
+table(pfpr_itn_acuse$net_use)
+
+
+pfpr_itn_acuse<- dataclean.para(pfpr_itn_acuse, hv005, hv005, net_use, 'net_use', 'net_use_access') 
+table(pfpr_itn_acuse$net_use_access)
+
+svyd_itn_acuse <- svydesign.fun(pfpr_itn_acuse)
+
+clu_pfpr_itn_acuse <- result.fun('net_use_access', 'hv001', design=svyd_itn_acuse, pfpr_itn_acuse, "hv007")
+head(clu_pfpr_itn_acuse)
+
+
+#net access
+pfpr_itn_access <- pfpr_data %>%  
+  mutate(net_access_1 = ifelse(hv227 == 1, 1,0))
+
+table(pfpr_itn_access$net_access_1)
+
+pfpr_itn_access <- dataclean.para(pfpr_itn_access, hv005, hv005, net_access_1, 'net_access_1', 'net_access') 
+table(pfpr_itn_access$net_access)
+
+svyd_itn_access <- svydesign.fun(pfpr_itn_access)
+
+clu_pfpr_itn_access <- result.fun('net_access', 'hv001', design=svyd_itn_access, pfpr_itn_access, "hv007")
+head(clu_pfpr_itn_access)
+
+
+#net use 
+pfpr_itn_use <- pfpr_data%>%  
+  mutate(net_use_1 = ifelse(hml12 %in% c(1,2), 1,0))
+
+table(pfpr_itn_use$net_use_1)
+
+
+pfpr_itn_use<- dataclean.para(pfpr_itn_use, hv005, hv005, net_use_1, 'net_use_1', 'net_use') 
+table(pfpr_itn_use$net_use)
+
+svyd_itn_use <- svydesign.fun(pfpr_itn_use)
+
+clu_pfpr_itn_use <- result.fun('net_use', 'hv001', design=svyd_itn_use, pfpr_itn_use, "hv007")
+head(clu_pfpr_itn_use)
+
 
 # median household size
 look_for(dhs[[1]], "number")
