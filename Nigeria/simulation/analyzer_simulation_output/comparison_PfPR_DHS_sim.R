@@ -38,7 +38,7 @@ rm(list = ls())
 list.of.packages <- c("tidyverse", "ggplot2", "purrr",  "stringr", "sp", "rgdal", "raster", "hablar", 
                       "lubridate", "RColorBrewer", "ggpubr", "gridExtra", "data.table",  "nngeo", "reshape2")
 lapply(list.of.packages, library, character.only = TRUE) #applying the library function to packages
-options(survey.lonely.psu="adjust")
+
 
 
 ###################################################################
@@ -94,7 +94,7 @@ dhs_pfpr <- df_SRS %>%  drop_na() %>%  mutate(month = str_split(time2, "-", simp
 # - - - - - - - - - - - - - - - - #
 # simulation output
 # - - - - - - - - - - - - - - - - #
-sim_filepath_2010 = paste0(box_hbhi_filepath, '/simulation_output/2010_to_2020_v10/NGA 2010-20 burnin_hs+itn+smc')
+sim_filepath_2010 = paste0(box_hbhi_filepath, '/simulation_output/2010_to_2020_v10/NGA 2010-20 burnin_hs+itn+smc 1')
 pfpr_case_all_2010 = fread(paste0(sim_filepath_2010, '/All_Age_monthly_Cases.csv'))
 pfpr_case_all_2010[,date:=as.Date(date)]
 pfpr_case_all_2010$year = lubridate::year(pfpr_case_all_2010$date)
@@ -148,6 +148,7 @@ pfpr_matched = left_join(pfpr_case_u5_runMeans, admin1DS, by=c('LGA'))
 ###################################################################
 # merge DHS and corresponding simulation values
 ###################################################################
+
 # PfPR: match date from sim and data but shuffle DS
 pfpr_matched_2 = pfpr_matched
 LGAs = unique(pfpr_matched_2$LGA)
@@ -405,6 +406,10 @@ create_PfPR_scatters_admin1 = function(pfpr_df, x_col_name, x_lab, y_col_name, y
   return(list(p_all, p_2010, p_2015, p_2018_2018))
 }
 
+# correlation confidence interval 
+
+df_2010 <- pfpr_matched_annual_admin1
+cor.test(df_2010$pfpr_sim_mean, df_2010$pfpr_dhs_mean, method = "pearson", conf.level = 0.95)
 ## - - - - - - - - - - - - - - - - - - - - - - - - - - - - - ##
 # compare matched DS versus mismatched DS
 ## - - - - - - - - - - - - - - - - - - - - - - - - - - - - - ##
