@@ -1,33 +1,80 @@
+ifelse(!dir.exists(file.path(ResultDir, "ITN")), 
+       dir.create(file.path(ResultDir, "ITN")), FALSE)
+print_path <- file.path(ResultDir, "ITN")
+
+
+#functions 
+recode_itn <- function(data) {
+  data %>% mutate(hh_itn = ifelse(hml12 == 9, NA,ifelse(hml12 ==1 | hml12 ==2, 1, 0)))
+}
+
+survey.month.fun <- function(data) {
+  data%>% mutate(MM = (hv008 - ((hv007 - 1900) * 12))) %>% #dhs pr 2010
+    dplyr::rename(v001 = hv001) %>%
+    mutate(YYYY = (floor((hv008 - 1)/12)+1900))%>%
+    mutate (timepoint = str_c(MM, hv016, YYYY, sep = '-'))%>%
+    mutate(time2 = str_c(MM, YYYY, sep = '-'))
+}
 
 # ITN coverage for year 2003 - 2018 with mapping script 
 
 if (Variable == "ITN"){
   itn.ls <-read.files( ".*NGPR.*\\.DTA", DataDir, read_dta)
   itn.ls[[1]] <- NULL 
-  itn.ls <- lapply(itn.ls, subset, hv103 == 1)
-  itn.ls <- map(itn.ls, recode_itn)
   itn.ls <- map(itn.ls, survey.month.fun)
+  itn.ls <- lapply(itn.ls, subset, hv103 == 1)
+  itn.ls <- lapply(itn.ls, recode_itn)
+  #itn.ls <- map(itn.ls, survey.month.fun)
+  
+  #monthly ITN use values 
+  col_names = c('YYYY', 'MM', 'hh_itn', 'hv005', 'v001', 'hv008', 'hv007', 'hv016', 'hv022', 'hv021')
+  itn_ls_m = lapply(itn.ls, "[", col_names)
+  itn_df <- plyr::ldply(itn_ls_m, rbind)
+  itn_df<-itn_df %>% mutate(wt=hv005/1000000,strat=hv022,
+           id=hv021, num_p=1)
+  table(itn_df$MM)
+  table(itn_df$YYYY)
+  svyd <- svydesign.fun(itn_df)
+  itn_use_month<-svyby(formula=~hh_itn, by=~MM, FUN=svymean, svyd, na.rm=T)
+  write.csv(itn_use_month, paste0(print_path, "/", "itn_monthly_values.csv"))
+  
+  #continue making yearly values
   key_list[[1]] <- NULL
   NGAshplist[[1]]<- NULL
   NGA_ID <- lapply(NGAshplist, "[[", "DHSCLUST")
   key_list <- Map(cbind, key_list, v001 = NGA_ID)
   itn.ls <- map2(itn.ls, key_list, left_join)
+  rep_DS.ls <- list(rep_DS)
+ 
+
+
+      if (age == "> 18"){
+        itn.ls <- lapply(itn.ls, subset, hv105 > 18)
+      }else if (age == "U5"){
+        itn.ls <-lapply(itn.ls, subset, hv105 <= 5)
+      }else if (age == "6-9"){
+        itn.ls <-lapply(itn.ls, subset, hv105 > 5 & hv105 < 10)
+      }else if (age == "10-18"){
+        itn.ls <-lapply(itn.ls, subset, hv105 > 9 & hv105 < 19)
+      }else {
+        itn.ls <- itn.ls
+      }
+  
+  
+      if (grepl("LGA|State|repDS|region", subVariable)) {
+        comboITN.list  <- map2(comboITN.list, rep_DS.ls, left_join) #PR datasets
+        LGA_sf <- LGA_clean_names%>%  as_tibble() %>% dplyr::select(LGA, State)
+        repDS_LGA<- rep_DS %>% left_join(LGA_sf)
+        
+        if(subVariable == "LGA"){
+          print("computing raw ITN coverage estimates at the LGA-level for years 2008, 2010, 2013, 2015 & 2018")
+          var <- list("LGA")
+          ITN_LGA <- map2(comboITN.list, var, generate.ITN.state_LGA_repDS)
+          fin_df <- plyr::ldply(ITN_LGA, rbind)
+
+      }
+  }
 }
-
-if (subVariable == "> 18"){
-  itn.ls <- lapply(itn.ls, subset, hv105 > 18)
-}else if (subVariable == "U5"){
-  itn.ls <-lapply(itn.ls, subset, hv105 <= 5)
-}else if (subVariable == "6-9"){
-  itn.ls <-lapply(itn.ls, subset, hv105 > 5 & hv105 < 10)
-}else if (subVariable == "10-18"){
-  itn.ls <-lapply(itn.ls, subset, hv105 > 9 & hv105 < 19)
-}else {
-  itn.ls <- itn.ls
-}
-
-
-
 
 #####################################################################################################
 #ITN coverage 

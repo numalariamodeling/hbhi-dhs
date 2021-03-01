@@ -28,6 +28,10 @@ if (Variable == "PfPR"){
   
   if (grepl("LGA|State|repDS|region", subVariable)) {
     pfpr.ls <- map(pfpr.ls, survey.month.fun) # applying function to create month and year of survey.
+    pfpr.ls[[2]]<- pfpr.ls[[2]]  %>% mutate(wt=hv005/1000000,strat=hv022,
+                                   id=hv021)
+    
+  
     pfpr.ls <- map2(pfpr.ls, key_list, left_join) # key datasets and dhs/mis datasets are joined  
     rep_DS.ls <- list(rep_DS)
     pfpr.ls <- map2(pfpr.ls, rep_DS.ls, left_join) #PR datasets
@@ -602,3 +606,10 @@ if (SAVE == TRUE & subVariable == "cluster") {
 # 
 # 
 # summary(res_$mean_rich)
+
+#national-level pfpr in 2015 
+mydesign <-svydesign(id= ~id,
+                     strata=~strat,nest=T, 
+                     weights= ~wt, data=pfpr.ls[[2]])
+options(survey.lonely.psu = "adjust")
+svymean(~hml32,mydesign)

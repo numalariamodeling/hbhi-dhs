@@ -1,9 +1,9 @@
 # This script was used to update the nigeria scenario files from LLINS to PBO 
+# Date: 02-25-2021
 
 
 
-
-# paths 
+# file paths 
 
 rm(list = ls())
 TeamDir <-"C:/Users/ido0493/Box/NU-malaria-team"
@@ -50,7 +50,8 @@ check <- anti_join(PBO_scen, aa_ITN, by =c("adm2" = "LGA")) # matches
 
 #now we read in aadrita's dataset and bind to scenarios to change llins1, mortality_rate, EMOD_kill_rate and block_rate 
 aa_ITN <- read.csv(file.path(ProjectDir, "ITN_parameter", "itn_scenario2_block_kill.csv")) %>%  
-mutate(LGA = ifelse(grepl("Namoda$", LGA), "Kaura-Namoda", LGA), new_block= ifelse(llins1== "Urban areas", 0.53, new_block))
+mutate(LGA = ifelse(grepl("Namoda$", LGA), "Kaura-Namoda", LGA), new_block= ifelse(llins1== "Urban areas", 0.53, new_block),
+       mortality_group = ifelse(mortality >=0.5, ">=0.5 mortality group", "<0.5 mortality group")) 
 
 
 
@@ -93,6 +94,10 @@ cat("\n")
 cat("ITN block rates by group")
 cat("\n")
 tapply(df_updated_ITN[[1]]$block_initial, df_updated_ITN[[1]]$llins1, summary)
+cat("\n")
+cat("ITN block rates by mortality group")
+cat("\n")
+tapply(df_updated_ITN[[1]]$block_initial, df_updated_ITN[[1]]$mortality_group, summary)
 sink()
 
 
