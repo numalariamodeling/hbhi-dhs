@@ -57,6 +57,14 @@ table(dat2$y)
 
 ######################################################################
 ####Step one: univariable analysis#####
+#wealth
+univariable_wealth <- glm(y ~ wealth_2, data = dat1, family = binomial)
+summary(univariable_wealth)
+
+#education 
+univariable_edu <- glm(y ~ edu_a, data = dat1, family = binomial)
+summary(univariable_edu)
+
 #net_use_u5
 univariable_net_use_u5 <- glm(y ~ net_use_u5, data = dat1, family = binomial)
 summary(univariable_net_use_u5)
@@ -65,23 +73,43 @@ summary(univariable_net_use_u5)
 univariable_net_use_preg <- glm(y ~ net_use_preg, data = dat1, family = binomial)
 summary(univariable_net_use_preg)
 
+#hh_size
+univariable_hh_size <- glm(y ~ hh_size, data = dat1, family = binomial)
+summary(univariable_hh_size)
 
-#net access and use 
-univariable_net_acuse <- glm(y ~ net_use_access, data = dat1, family = binomial)
-summary(univariable_net_acuse)
+#ACT_use_u5
+univariable_ACT_use_u5 <- glm(y ~ ACT_use_u5, data = dat1, family = binomial)
+summary(univariable_ACT_use_u5)
 
-#net access  
-univariable_net_access <- glm(y ~ net_access, data = dat1, family = binomial)
-summary(univariable_net_access)
+#pop_den
+univariable_pop_den <- glm(y ~ l_pop_den, data = dat1, family = binomial)
+summary(univariable_pop_den)
+
+#hh_average_age
+univariable_average_age <- glm(y ~ hh_members_age, data = dat1, family = binomial)
+summary(univariable_average_age)
+
+#sex_f 
+univariable_sex_f <- glm(y ~ sex_f, data = dat1, family = binomial)
+summary(univariable_sex_f)
+
+#humidindex
+univariable_humidindex <- glm(y ~ humidindex, data = dat1, family = binomial)
+summary(univariable_humidindex)
+
+#annual_precipitation
+univariable_prec <- glm(y ~ annual_precipitation, data = dat1, family = binomial)
+summary(univariable_prec)
 
 
-#net access  
+#net use 
 univariable_net_use <- glm(y ~ net_use, data = dat1, family = binomial)
 summary(univariable_net_access)
 
 
 # Compare asymptotic distributions of coefficients:
-plot_summs(univariable_net_use_u5, univariable_net_use_preg, univariable_net_acuse,  univariable_net_access, univariable_net_use, scale = TRUE, colors = "Rainbow", plot.distributions = F, 
+plot_summs(univariable_edu, univariable_wealth, univariable_net_use, univariable_hh_size, 
+           univariable_ACT_use_u5, univariable_pop_den, univariable_average_age, univariable_sex_f, univariable_humidindex, univariable_prec, scale = TRUE, colors = "Rainbow", plot.distributions = F, 
            inner_ci_level = .95, model.names = c())
 
 ########################multivariable model comparisons####################################
