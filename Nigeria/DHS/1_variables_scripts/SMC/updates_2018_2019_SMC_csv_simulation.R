@@ -18,7 +18,7 @@ smc_2 <- left_join(smc, smc_hag, by = c("adm1", "round", "year"))
 
 file_split <- split(smc_2, smc$year)
 
-
+# Fhag is high access fraction
 file_split$`2018` <- file_split$`2018` %>% mutate(coverage_high_access = ifelse(grepl('Jiga|Kat|Sok|Zam',adm1),1, coverage_high_access)) %>% 
                   mutate(coverage_low_access = (coverage - Fhag)/(1 - Fhag))
 

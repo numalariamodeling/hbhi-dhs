@@ -58,9 +58,7 @@ class(LGA_clean_names)
 
 
 # rep DS file
-rep_DS <- read.csv(file.path(BinDir, "rep_DS/representative_DS_orig60clusters.csv")) %>% dplyr::select(-X)
-
-
+rep_DS <- read.csv(file.path(BinDir, "rep_DS/representative_DS_orig60clusters.csv")) %>% dplyr::select(-X) 
 
 ## -----------------------------------------
 ### Variables  
@@ -78,15 +76,15 @@ for (i in 1:nrow(var_df)){
       SAVE <- var_df[, "SAVE"][i]
       
       # cluster locations 
-      NGAshplist<-read.files("*FL.*\\.shp$", DataDir, shapefile)
+      NGAshplist<-read.files("*FL.shp$", DataDir, shapefile)
+      key_list <- map(NGAshplist, over.fun)
       NGAshplist <- lapply(NGAshplist, st_as_sf)
-      key_list <- lapply(NGAshplist, function(x) x %>%st_join(LGA_clean_names, join = st_nn, maxdist = 10000))
+      #key_list <- lapply(key_list, st_as_sf)
+      #key_list <- lapply(NGAshplist, function(x) x %>%st_join(LGA_clean_names, join = st_nn, maxdist = 10000))
       
       source(file.path(VarDir, var_df[, "fun_path"][i]))
       source(file.path(VarDir, var_df[, "main_path"][i]))
       }
 }
 
-
-# check why there are holes in state map 
 

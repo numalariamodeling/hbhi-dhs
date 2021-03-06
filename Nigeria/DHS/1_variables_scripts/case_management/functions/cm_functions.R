@@ -13,7 +13,7 @@ ACT.fun_region <- function(df){
 
 
 generate.ACT.state_LGA_repDS <- function(df, var){
-  df1<-dataclean(comboACT.list[[2]], ml13e, v005, 'ml13e', 'comboACT')  
+  df1<-dataclean(df, ml13e, v005, 'ml13e', 'comboACT')  
   svyd <- svydesign.fun(df1)
   #generate LGA estimates 
   df2 <- result.fun('comboACT', var,design=svyd, data =df1) 

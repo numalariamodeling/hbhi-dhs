@@ -35,8 +35,9 @@ if (Variable == "CM"){
       var <- list("State")
       ACT_State <- map2(comboACT.list,var, generate.ACT.state_LGA_repDS)
       fin_df <- plyr::ldply(ACT_State, rbind)
+      CM_State_with_LGA_DHS_2008_10 <- fin_df
       fin_df <- fin_df %>%  distinct(State, comboACT, se, year)
-      state_ls <- list(CM_State_DHS_2008_10 = fin_df, CM_State_with_LGA_DHS_2008_10 = fin_df)
+      state_ls <- list(CM_State_DHS_2008_10 = fin_df, CM_State_with_LGA_DHS_2008_10 = CM_State_with_LGA_DHS_2008_10)
       
     }else if(subVariable == "repDS"){
       print("computing raw case management coverage estimates at the representative DS-level for years 2008, 2010, 2013, 2015 & 2018")
