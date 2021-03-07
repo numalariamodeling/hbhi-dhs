@@ -29,17 +29,19 @@ comineddataset <- dat0
 
 dat1 = urbandataset[,c("p_test", "wealth_2", "edu_a", "net_use_u5", "net_use_preg", "hh_size",
                        "ACT_use_u5", "pop_den","hh_members_age", "sex_f", "humidindex",
-                       "rainfal", "annual_precipitation", "l_pop_den", "housing_qua")]
+                       "rainfal", "annual_precipitation", "l_pop_den", "housing_qua", "net_access", "net_use_access", "net_use")]
 
 
 # Binarize response:
 dat1$y <- ifelse(dat1$p_test < 0.1, 0,1)
+table(dat1$y)
+
 
 
 
 dat2 = dat1[,c("y", "wealth_2", "edu_a", "net_use_u5", "net_use_preg", "hh_size",
                "ACT_use_u5", "pop_den","hh_members_age", "sex_f", "humidindex",
-               "rainfal", "annual_precipitation", "housing_qua")]
+               "rainfal", "annual_precipitation", "housing_qua", "net_access", "net_use_access", "net_use")]
 
 dat2 <- dat2%>% mutate(annual_precipitation = scale(dat2$annual_precipitation, center = T))
 #dat2[which(dat2$pop_den<0),]
@@ -52,7 +54,7 @@ nearZeroVar(dat2)
 # Create reduced dataset for model 2:
 # (filter out rows with NA values)
 dat2 <- na.omit(dat2)
-table(dat2$p_level)
+table(dat2$y)
 
 ######################################################################
 ####Step one: univariable analysis#####
@@ -101,21 +103,21 @@ univariable_prec <- glm(y ~ annual_precipitation, data = dat1, family = binomial
 summary(univariable_prec)
 
 
-# Comparing fits estimates:
-export_summs(univariable_edu, univariable_wealth, univariable_net_use_u5, univariable_net_use_preg, univariable_hh_size, 
-             univariable_ACT_use_u5, univariable_pop_den, univariable_average_age, univariable_sex_f, univariable_humidindex, univariable_prec, scale = F, error_format = "[{conf.low}, {conf.high}]", 
-             digits = 3, model.names = c("% education", "% wealth", "% u5 net use", "% preg net use", "household size", "% ACT use u5", 
-                                         "population density", "average household age", "% female", "humidity index", "annual precipitation"))
+#net use 
+univariable_net_use <- glm(y ~ net_use, data = dat1, family = binomial)
+summary(univariable_net_access)
+
 
 # Compare asymptotic distributions of coefficients:
-plot_summs(univariable_edu, univariable_wealth, univariable_net_use_u5, univariable_net_use_preg, univariable_hh_size, 
+plot_summs(univariable_edu, univariable_wealth, univariable_net_use, univariable_hh_size, 
            univariable_ACT_use_u5, univariable_pop_den, univariable_average_age, univariable_sex_f, univariable_humidindex, univariable_prec, scale = TRUE, colors = "Rainbow", plot.distributions = F, 
            inner_ci_level = .95, model.names = c())
 
+########################multivariable model comparisons####################################
 
 ########################multivariable model comparisons####################################
 model1 <- glm(y ~ edu_a + wealth_2 +  annual_precipitation + sex_f + hh_size + log_pop_den  + hh_members_age
-              + net_use_u5 + net_use_preg + ACT_use_u5 + humidindex, data = dat2, binomial)
+              + net_use + ACT_use_u5 + humidindex, data = dat2, binomial)
 
 summary(model1)
 
@@ -148,7 +150,7 @@ lrtest3$model <- "wealth_model"
 
 #multivariable model comparisons adding hh_size 
 model1a <- glm(y ~ edu_a  + wealth_2 + hh_size + sex_f  + annual_precipitation  + log_pop_den  + hh_members_age
-               + net_use_u5 + net_use_preg + ACT_use_u5 + humidindex, data = dat2, binomial)
+               + net_use + ACT_use_u5 + humidindex, data = dat2, binomial)
 summary(model1a)
 
 model4 <- glm(y ~ edu_a + wealth_2 + hh_size , data = dat2, binomial) 
@@ -165,7 +167,7 @@ lrtest4$model <- "hh_size_model"
 
 #multivariable model comparisons adding log_pop_den 
 model1b <- glm(y ~ edu_a +  + wealth_2 + log_pop_den + sex_f + annual_precipitation + hh_size + hh_members_age
-               + net_use_u5 + net_use_preg + ACT_use_u5 + humidindex, data = dat2, binomial)
+               + net_use + ACT_use_u5 + humidindex, data = dat2, binomial)
 summary(model1a)
 
 model5 <- glm(y ~ edu_a + wealth_2 + log_pop_den, data = dat2, binomial) 
@@ -183,7 +185,7 @@ lrtest5$model <- "pop_den_model"
 
 #multivariable model comparisons adding hh_members_age
 model1c <- glm(y ~ edu_a + wealth_2 + hh_members_age + sex_f + annual_precipitation + log_pop_den + hh_size 
-               + net_use_u5 + net_use_preg + ACT_use_u5 + humidindex, data = dat2, binomial)
+               + net_use + ACT_use_u5 + humidindex, data = dat2, binomial)
 summary(model1a)
 
 model6 <- glm(y ~ edu_a + wealth_2 + hh_members_age, data = dat2, binomial) 
@@ -198,12 +200,12 @@ delta_coef_hh_age <- as.data.frame(round(delta_coef_hh_age, 3))
 lrtest6 <- as.data.frame(lrtest(model2, model6))
 lrtest6$model <- "hh_age_model"
 
-#multivariable model comparisons adding net_use_u5 
-model1d <- glm(y ~ edu_a + wealth_2 + net_use_u5 + sex_f + annual_precipitation  + hh_members_age + log_pop_den + hh_size
-               +  net_use_preg + ACT_use_u5 + humidindex, data = dat2, binomial)
+#multivariable model comparisons adding net_use
+model1d <- glm(y ~ edu_a + wealth_2 + net_use + sex_f + annual_precipitation  + hh_members_age + log_pop_den + hh_size
+               + ACT_use_u5 + humidindex, data = dat2, binomial)
 summary(model1d)
 
-model7 <- glm(y ~ edu_a + wealth_2 + net_use_u5, data = dat2, binomial) 
+model7 <- glm(y ~ edu_a + wealth_2 + net_use, data = dat2, binomial) 
 summary(model7)
 
 delta_coef_net_u5 <- abs((coef(model7)-coef(model1d)[1:4])/
@@ -214,23 +216,6 @@ delta_coef_net_u5 <- as.data.frame(round(delta_coef_net_u5, 3))
 
 lrtest7 <- as.data.frame(lrtest(model2, model7))
 lrtest7$model <- "u5_net_model"
-
-#multivariable model comparisons adding net_use_preg  
-model1e <- glm(y ~ edu_a + wealth_2 + net_use_preg + sex_f  + annual_precipitation + net_use_u5 + hh_members_age + log_pop_den + hh_size 
-               + ACT_use_u5 + humidindex, data = dat2, binomial)
-summary(model1e)
-
-model8 <- glm(y ~ edu_a + wealth_2 + net_use_preg, data = dat2, binomial) 
-summary(model8)
-
-delta_coef_net_preg <- abs((coef(model8)-coef(model1e)[1:4])/
-                             coef(model1e)[1:4]) 
-
-delta_coef_net_preg <- as.data.frame(round(delta_coef_net_preg, 3))
-
-
-lrtest8 <- as.data.frame(lrtest(model2, model8))
-lrtest8$model <- "preg_net_gmodel"
 
 
 #multivariable model comparisons adding ACT_use_u5  
@@ -276,8 +261,6 @@ delta_coef_df <- delta_coef_df %>% remove_rownames %>% column_to_rownames(var="R
 delta_coef_df <- merge(delta_coef_df,delta_coef_hh_age, by="row.names", all=TRUE)
 delta_coef_df <- delta_coef_df %>% remove_rownames %>% column_to_rownames(var="Row.names")
 delta_coef_df <- merge(delta_coef_df,delta_coef_humidindex, by="row.names", all=TRUE)
-delta_coef_df <- delta_coef_df %>% remove_rownames %>% column_to_rownames(var="Row.names")
-delta_coef_df <- merge(delta_coef_df,delta_coef_net_preg, by="row.names", all=TRUE)
 delta_coef_df <- delta_coef_df %>% remove_rownames %>% column_to_rownames(var="Row.names")
 delta_coef_df <- merge(delta_coef_df,delta_coef_net_u5, by="row.names", all=TRUE)
 #delta_coef_df <- delta_coef_df %>% remove_rownames %>% column_to_rownames(var="Row.names")

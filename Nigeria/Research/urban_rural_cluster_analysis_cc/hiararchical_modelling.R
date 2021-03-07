@@ -4,7 +4,7 @@ x <- c("tidyverse", "survey", "haven", "ggplot2", "purrr", "summarytools", "stri
        "clusterSim", "gridExtra", "MASS", "effects", "pscl", "pROC", "car", "nnet", "reshape2", "AER", "MNLpred",
        "scales", "sjPlot", "sjlabelled", "sjmisc", "mi", "mice", "mitools", "VIM", "jtools", "huxtable", "jtools",
        "gridExtra", "broom.mixed", "randomGLM", "ROCR", "caretEnsemble", "klaR", "naniar", "corrplot", 
-       "lmtest", "Deducer", "lattice", "ResourceSelection", "spdep", "INLA", "expp")
+       "lmtest", "Deducer", "lattice", "ResourceSelection", "INLA", "expp", "spatialreg", "spdep")
 
 lapply(x, library, character.only = TRUE) #applying the library function to packages
 
@@ -92,25 +92,25 @@ dat_sf <- dat_ds[,c("LONGNUM", "LATNUM","DHSCLUST", "y", "wealth_2", "edu_a", "h
                     "annual_precipitation", "net_use", "Rural_urban", "data_source")]
 
 
-pc <- spTransform(dat_sf, crs( "+init=epsg:26393" ) ) 
-
 
 table(dat_df$y)
 
 coordinates(dat_sf) <- ~ LONGNUM + LATNUM
-neib <- dnearneigh(coordinates(dat_sf), 0, 10, longlat = TRUE)
+neib <- knn2nb(knearneigh(dat_sf, k = 1))
+
+
+#neib <- dnearneigh(coordinates(dat_sf), 0, 10, longlat = TRUE)
 neib_df <- neighborsDataFrame(neib) 
+summary.nb(neib_df)
 
-nb2INLA("Georgia.graph", neib)
-Georgia.adj <- paste(getwd(),"/Georgia.graph",sep="")
 
-W_neib_df <- nb2mat(Georgia.adj, style="B") 
-W_neib_df_rs <- nb2mat(neib_df, style = "W") 
+W_neib_df <- nb2mat(neib , style="B") 
+
 
 #fitting Model that accounts for random effects that is non-spatial (iid), 
 
-form_10to18 <- y ~ wealth_2 + edu_a + net_use + hh_size + ACT_use_u5 + pop_den + 
-  hh_members_age + sex_f + annual_precipitation
+form_10to18 <- glm(y ~ wealth_2 + edu_a + net_use + hh_size + ACT_use_u5 + pop_den + 
+  hh_members_age + sex_f + annual_precipitation, data = dat_df, family = "binomial")
 
 
 all_iid <- inla(update(form_10to18, . ~. + f(DHSCLUST, model = "iid")),
@@ -118,9 +118,9 @@ all_iid <- inla(update(form_10to18, . ~. + f(DHSCLUST, model = "iid")),
                    control.compute = list(dic = TRUE, waic = TRUE, cpo = TRUE),
                    control.predictor = list(compute = TRUE)
 )
-summary(all_iid)
+summary(form_10to18)
 
-library(spatialreg)
+
 #fit the Simple INLA model with no random effects
 
 dat_simp <- inla(y~wealth_2 + edu_a + net_use + hh_size + ACT_use_u5 + pop_den + 
@@ -135,10 +135,10 @@ summary(dat_simp)
 
 # Specify linear predictor
 
-formula_nieb = y ~ wealth_2 + edu_a + net_use + hh_size  + pop_den + 
-  hh_members_age + sex_f + annual_precipitation + f(ACT_use_u5 , model ="besag", graph = neib_df)
-
+formula_nieb = y ~ edu_a + net_use + hh_size  + pop_den + 
+  hh_members_age + sex_f + annual_precipitation + f(wealth_2, model ="bym", graph = W_neib_df)
 # Run model
 result = inla (formula_nieb ,family = " binomial ", data = dat_df)
 
 summary(result)
+
