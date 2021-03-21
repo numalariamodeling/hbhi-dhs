@@ -1,12 +1,8 @@
 rm(list=ls())
 
-x <- c("tidyverse", "survey", "haven", "ggplot2", "purrr", "summarytools", "stringr", "sp", "rgdal", "raster",
-       "lubridate", "RColorBrewer","sf", "shinyjs", "tmap", "knitr", "labelled", "plotrix", "arules", "foreign",
-       "fuzzyjoin", "splitstackshape", "magrittr", "caTools", "ggcorrplot", "hrbrthemes", "reshape", "caret", 
-       "clusterSim", "gridExtra", "MASS", "effects", "pscl", "pROC", "car", "nnet", "reshape2", "AER", "MNLpred",
-       "scales", "sjPlot", "sjlabelled", "sjmisc", "mi", "mice", "mitools", "VIM", "jtools", "huxtable", "jtools",
-       "gridExtra", "broom.mixed", "randomGLM", "ROCR", "caretEnsemble", "klaR", "naniar", "corrplot", 
-       "lmtest", "Deducer", "lattice", "ResourceSelection", "INLA", "expp", "spatialreg", "spdep")
+x <- c("tidyverse","INLA", "ggplot2", "ggpubr", "inlabru")
+
+
 
 lapply(x, library, character.only = TRUE) #applying the library function to packages
 
@@ -52,54 +48,25 @@ clu_variales_10_18$annual_precipitation <- replace(clu_variales_10_18$annual_pre
 clu_variales_10_18 <- clu_variales_10_18 %>% mutate(log_pop_den = log(pop_den))
 
 
-#Loading shapefiles
-
-dhs18_sf <- st_read(file.path(DataDir,"NG_2018_DHS_11072019_1720_86355/NGGE7BFL/NGGE7BFL.shp"))
-
-mis15_sf <- st_read(file.path(DataDir,"NG_2015_MIS_06192019/NGGE71FL/NGGE71FL.shp"))
-
-mis10_sf <- st_read(file.path(DataDir,"NG_2010_MIS_06192019/NGGE61FL/NGGE61FL.shp"))
-
-plot(mis10_sf$geometry)
-
-summary(dhs18_sf)
 
 
-# join dhs variables to shapefiles by year 
 
-df_18 <- clu_variales_10_18 %>% filter(data_source == "dhs2018") 
-
-df_18_fin <- left_join(dhs18_sf, df_18, by = c("DHSCLUST" ="hv001"))
-
-
-df_15 <- clu_variales_10_18 %>% filter(data_source == "mis2015") 
-
-df_15_fin <- left_join(mis15_sf, df_15, by = c("DHSCLUST" ="hv001"))
-
-
-df_10 <- clu_variales_10_18 %>% filter(data_source == "mis2010") 
-
-df_10_fin <- left_join(mis10_sf, df_10, by = c("DHSCLUST" = "hv001"))
-
-
-df_10_18_fin <- rbind(df_18_fin, df_15_fin, df_10_fin)
 
 
 #sub setting variables of interest 
-df_10_18_fin <- df_10_18_fin[,c("LONGNUM", "LATNUM", "DHSCLUST", "y", "wealth_2", "edu_a", "hh_size",
+clu_variales_10_18 <- clu_variales_10_18[,c("hv001", "y", "wealth_2", "edu_a", "hh_size",
                                             "ACT_use_u5", "pop_den","hh_members_age", "sex_f", "humidindex",
                                             "annual_precipitation", "net_use", "Rural_urban", "data_source", "state", "build_count", "region")]
 
 
 # Create reduced dataset for model 2:
 # (filter out rows with NA values)
-df_10_18_fin <- na.omit(df_10_18_fin)
-table(df_10_18_fin$y)
+
 
 #filtering by residence tyoe
-urbandataset <- df_10_18_fin %>% filter(Rural_urban == 1)
-ruraldataset <- df_10_18_fin %>% filter(Rural_urban == 2)
-comineddataset <- df_10_18_fin
+urbandataset <- clu_variales_10_18 %>% filter(Rural_urban == 1)
+ruraldataset <-clu_variales_10_18 %>% filter(Rural_urban == 2)
+comineddataset <- clu_variales_10_18
 
 
 
@@ -107,43 +74,115 @@ comineddataset <- df_10_18_fin
 ####rural dataset
 ###################################################################################
   
-library(INLA)
+
 
 #regular rural model without random effect 
-r_rmod <- inla(y ~ 1+ wealth_2 + edu_a + net_use + hh_size + ACT_use_u5 +
-              hh_members_age + sex_f + log(annual_precipitation) +log(build_count) + humidindex, family = 'binomial',
-            data = ruraldataset, control.family = list(link = "logit"), control.predictor = list(compute=TRUE)) 
+r_rmod <- inla(y ~ 1 + wealth_2 + edu_a + net_use + hh_size + ACT_use_u5 +
+                 hh_members_age + sex_f + log(annual_precipitation) +log(build_count) + humidindex, family = 'binomial',
+               data = ruraldataset, control.family = list(link = "logit"), control.predictor = list(compute=TRUE),
+               control.compute = list(cpo=TRUE, dic = TRUE)) 
 
 summary(r_rmod)
 
-#model with random effects in state
+
+
+#model with random intercept in state and random slope in education
+ruraldataset$state_2 <- ruraldataset$state
+r_iid_s <- inla(y ~ 1+ wealth_2 + edu_a + net_use + hh_size + ACT_use_u5 +
+                hh_members_age + sex_f + log(annual_precipitation) +log(build_count)
+              + humidindex +f(state, model = "iid") + f(state_2, net_use, model = "iid"), family = 'binomial',
+              data = ruraldataset, control.family = list(link = "logit"), control.predictor = list(compute=TRUE),
+              control.compute = list(cpo=TRUE, dic = TRUE))
+
+summary(r_iid_s) 
+
+
+
+
+#model with random intercept in state 
 r_iid <- inla(y ~ 1+ wealth_2 + edu_a + net_use + hh_size + ACT_use_u5 +
-                   hh_members_age + sex_f + log(annual_precipitation) +log(build_count)+ + humidindex +f(state, model = "iid"), family = 'binomial',
-                 data = ruraldataset, control.family = list(link = "logit"), control.predictor = list(compute=TRUE))
+                hh_members_age + sex_f + log(annual_precipitation) +log(build_count)
+              + humidindex +f(state, model = "iid"), family = 'binomial',
+              data = ruraldataset, control.family = list(link = "logit"), control.predictor = list(compute=TRUE),
+              control.compute = list(cpo=TRUE, dic = TRUE))
 
 summary(r_iid)
 
-#extracting state random effects 
-r_random_effects <- r_iid$summary.random
 
-#changing to dataframe
-r_random_effects_<- do.call(cbind, r_random_effects)
+###################################################################################
+####final rural model
+###################################################################################
 
-#extracting factos 
-r_random_effects_$state.ID <-str_to_title(r_random_effects_$state.ID)
-r_random_effects_$state.ID <- factor(r_random_effects_$state.ID, levels=rev(r_random_effects_$state.ID))
-r_random_effects_$state.ID<- trimws(r_random_effects_$state.ID)
+#model with random intercept in state and region
+r_iid2 <- inla(y ~ 1+ wealth_2 + edu_a + net_use + hh_size + ACT_use_u5 +
+                 hh_members_age + sex_f + log(annual_precipitation) +log(build_count)
+               + humidindex +f(state, model = "iid") + f(region, model = "iid") +  f(state_2, net_use, model = "iid"), family = 'binomial',
+               data = ruraldataset, control.family = list(link = "logit"), control.predictor = list(compute=TRUE),
+               control.compute = list(cpo=TRUE, dic = TRUE))
+
+summary(r_iid2) # model with the lowest dic and marginal loglikelihood
+
+r_iid2$
+
+#plots of the posterior for the betas 
+
+plot_fun<- function(data, x_label){
+  ggplot(data.frame(inla.smarginal(data)), aes(x, y)) +
+    geom_line(color = "green") +
+    theme_bw()+
+    geom_vline(xintercept=0, linetype="dashed", color = "red")+
+    xlab(x_label)+
+    ylab("")
+}
 
 
-#quick plot of random effect 
-library(ggplot2)
-r_fp <- ggplot(data=r_random_effects_, aes(x=state.ID, y=state.mean, ymin=state.0.025quant, ymax=state.0.975quant)) +
+data <- list(r_iid2$marginals.fixed$`(Intercept)`,r_iid2$marginals.fixed$wealth_2, r_iid2$marginals.fixed$edu_a, r_iid2$marginals.fixed$net_use, 
+             r_iid2$marginals.fixed$hh_size, r_iid2$marginals.fixed$ACT_use_u5, r_iid2$marginals.fixed$hh_members_age,
+             r_iid2$marginals.fixed$sex_f, r_iid2$marginals.fixed$`log(annual_precipitation)`, r_iid2$marginals.fixed$`log(build_count)`,
+             r_iid2$marginals.fixed$humidindex)
+
+labels_data <- list("intercept", "Highest wealth quintile", "Education", "Bednet Use", "Average Household size", "ACT_use",
+                    "Average Household age", "Proportion of females", "log(annual precipitation)", 
+                    "log(build_count)", "humidity index")
+
+plots<-map2(data, labels_data, plot_fun)
+
+figure<-ggarrange(plotlist = plots, nrow =4, ncol=3)
+figure<-annotate_figure(figure, left = "Density")
+
+
+
+
+#extracting state random intercept 
+r_random_effects_ <- r_iid2$summary.random[[1]]
+
+#extracting factors 
+r_random_effects_$ID <-str_to_title(r_random_effects_$ID)
+r_random_effects_$ID <- factor(r_random_effects_$ID, levels=rev(r_random_effects_$ID))
+r_random_effects_$ID<- trimws(r_random_effects_$ID)
+
+
+#quick plot of state_random intercept 
+
+r_fp <- ggplot(data=r_random_effects_, aes(x=ID, y=mean, ymin=`0.025quant`, ymax=`0.975quant`)) +
   geom_pointrange() + 
   geom_hline(yintercept=0, lty=2) +  # add a dotted line at x=1 after flip
   coord_flip() +  # flip coordinates (puts labels on y axis)
   xlab("Label") + ylab("Mean (95% CI)") +
   theme_bw()  # use a white background
-print(r_fp)
+print(r_fp)# no significant state variations 
+
+
+#extracting region random intercept 
+r_random_effects_ <- r_iid2$summary.random[[2]]
+re_fp <- ggplot(data=r_random_effects_, aes(x=ID, y=mean, ymin=`0.025quant`, ymax=`0.975quant`)) +
+  geom_pointrange() + 
+  geom_hline(yintercept=0, lty=2) +  # add a dotted line at x=1 after flip
+  coord_flip() +  # flip coordinates (puts labels on y axis)
+  xlab("Label") + ylab("Mean (95% CI)") +
+  theme_bw()  # use a white background
+print(re_fp)#significant variation in the south west increasing likelihood of transmission and decreased likelihood in the north 
+
 
 
 #map 
@@ -155,7 +194,7 @@ state_sf <- st_as_sf(stateshp)
 state_sf <- state_sf %>% mutate(NAME_1 = case_when(NAME_1 == "Federal Capital Territory" ~ "Fct Abuja",
                                                    NAME_1 == "Nassarawa" ~ "Nasarawa",
                                                    TRUE ~ as.character(NAME_1)
-                                                   ))
+))
 
 r_map_df <- left_join(state_sf, r_random_effects_, by =c("NAME_1" = "state.ID"))
 
@@ -164,6 +203,7 @@ r_map_df <- left_join(state_sf, r_random_effects_, by =c("NAME_1" = "state.ID"))
 r_map <- tm_shape(r_map_df)+
   tm_polygons(col = "state.mean", midpoint =NA, palette = "-RdYlGn")+
   tm_text("NAME_1")
+
 
 
 
