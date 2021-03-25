@@ -1,6 +1,6 @@
 rm(list=ls())
 
-x <- c("tidyverse","INLA", "ggplot2", "ggpubr", "inlabru")
+x <- c("tidyverse","INLA", "ggplot2", "ggpubr", "inlabru", "rgdal", "Sp", "sf", "tmap")
 
 
 
@@ -122,7 +122,14 @@ r_iid2 <- inla(y ~ 1+ wealth_2 + edu_a + net_use + hh_size + ACT_use_u5 +
 
 summary(r_iid2) # model with the lowest dic and marginal loglikelihood
 
-r_iid2$
+#We can calculate the probabilites that malaria prevalence rates are higher for all hospitals
+#These exceedance probabilities indicate that the probability that higher malaria prevalence 
+#exceeds 0.1 is highest for observation number 1138 (probability equal to 1)
+
+pros <- sapply(r_iid2$marginals.fitted.values,
+               FUN = function(marg){1-inla.pmarginal(q = 0.1, marginal = marg)})
+
+probs_df <- as.data.frame(pros)
 
 #plots of the posterior for the betas 
 
@@ -149,8 +156,7 @@ plots<-map2(data, labels_data, plot_fun)
 
 figure<-ggarrange(plotlist = plots, nrow =4, ncol=3)
 figure<-annotate_figure(figure, left = "Density")
-
-
+figure
 
 
 #extracting state random intercept 
@@ -173,6 +179,31 @@ r_fp <- ggplot(data=r_random_effects_, aes(x=ID, y=mean, ymin=`0.025quant`, ymax
 print(r_fp)# no significant state variations 
 
 
+#map 
+
+#read in state shape file 
+stateshp <- readOGR(file.path(DataDir,"gadm36_NGA_shp"), layer ="gadm36_NGA_1", use_iconv=TRUE, encoding= "UTF-8")
+state_sf <- st_as_sf(stateshp)
+
+
+
+
+state_sf <- state_sf %>% mutate(NAME_1 = case_when(NAME_1 == "Federal Capital Territory" ~ "Fct Abuja",
+                                                   NAME_1 == "Nassarawa" ~ "Nasarawa",
+                                                   TRUE ~ as.character(NAME_1)
+))
+
+r_map_df <- left_join(state_sf, r_random_effects_, by =c("NAME_1" = "ID"))
+
+
+# we see spatial clustering of state-level random effects, although state effects are not statistically significant 
+r_map <- tm_shape(r_map_df)+
+  tm_polygons(col = "mean", midpoint =NA, palette = "-RdYlGn")+
+  tm_text("NAME_1")
+
+r_map
+
+
 #extracting region random intercept 
 r_random_effects_ <- r_iid2$summary.random[[2]]
 re_fp <- ggplot(data=r_random_effects_, aes(x=ID, y=mean, ymin=`0.025quant`, ymax=`0.975quant`)) +
@@ -184,26 +215,56 @@ re_fp <- ggplot(data=r_random_effects_, aes(x=ID, y=mean, ymin=`0.025quant`, yma
 print(re_fp)#significant variation in the south west increasing likelihood of transmission and decreased likelihood in the north 
 
 
-
 #map 
 
-#read in state shape file 
-stateshp <- readOGR(file.path(DataDir,"gadm36_NGA_shp"), layer ="gadm36_NGA_1", use_iconv=TRUE, encoding= "UTF-8")
-state_sf <- st_as_sf(stateshp)
 
-state_sf <- state_sf %>% mutate(NAME_1 = case_when(NAME_1 == "Federal Capital Territory" ~ "Fct Abuja",
-                                                   NAME_1 == "Nassarawa" ~ "Nasarawa",
-                                                   TRUE ~ as.character(NAME_1)
+
+#############################################################################################
+#########regional map
+#read in state shape file 
+regionshp <-  readOGR(file.path(DataDir,"gadm36_NGA_shp"), layer ="gadm36_NGA_1", use_iconv=TRUE, encoding= "UTF-8")
+region_sf <- st_as_sf(regionshp)
+
+
+
+region_sf <- region_sf %>% mutate(NAME_1 = case_when(NAME_1 == "Federal Capital Territory" ~ "Fct Abuja",
+                                                         NAME_1 == "Nassarawa" ~ "Nasarawa",
+                                                         TRUE ~ as.character(NAME_1)
 ))
 
-r_map_df <- left_join(state_sf, r_random_effects_, by =c("NAME_1" = "state.ID"))
 
+                     
+regions <- clu_variales_10_18[,c("state", "region")]
+
+
+region_sf <- region_sf %>% mutate(NAME_1 = tolower(NAME_1))
+
+
+region_sf <- left_join(region_sf, regions, by =c("NAME_1" = "state"))
+
+#We have missing data in three states below, we assign the region mannually
+region_sf$region[which(region_sf$NAME_1 =="kwara")]<-"north central"
+region_sf$region[which(region_sf$NAME_1 =="plateau")]<-"north central"
+region_sf$region[which(region_sf$NAME_1 =="zamfara")]<-"north west"
+
+#grouping states into regions
+region_sf <- region_sf %>% group_by(NAME_1) %>% slice(1L)
+region_sf_na<-subset(region_sf,region_sf$region=="NA")
+
+r_map_df <- left_join(region_sf, r_random_effects_, by =c("region" = "ID"))
+#r_map_df  <- r_map_df %>% group_by(region) %>% slice(1L)
+r_map_df <- st_as_sf(r_map_df)
+
+r_map_df%>% group_by(region) %>% 
+  summarise(geometry = sf::st_union(geometry)) %>% ungroup()
 
 # we see spatial clustering of state-level random effects, although state effects are not statistically significant 
 r_map <- tm_shape(r_map_df)+
-  tm_polygons(col = "state.mean", midpoint =NA, palette = "-RdYlGn")+
-  tm_text("NAME_1")
+  tm_fill(col = "mean", midpoint =NA, palette = "-RdYlGn", breaks = c(-1, -0.5, -0.16, 0, 0.05, 1, 1.5)) +
+  tm_borders() +
+  tm_text("NAME_1", size = 0.8, col = "snow4")
 
+r_map
 
 
 
@@ -225,26 +286,26 @@ u_iid <- inla(y ~ 1+ wealth_2 + edu_a + net_use + hh_size + ACT_use_u5 +
 summary(u_iid)
 
 
-# library(lme4)
-# st_geometry(urbandataset) <- NULL
+library(lme4)
+#st_geometry(urbandataset) <- NULL
 # 
-# urbandataset$log_annual_precipitation<-log(urbandataset$annual_precipitation)
-# urbandataset$log_build_count<-log(urbandataset$build_count)
-# urbandataset$annual_precipitation<-NULL
+urbandataset$log_annual_precipitation<-log(urbandataset$annual_precipitation)
+urbandataset$log_build_count<-log(urbandataset$build_count)
+urbandataset$annual_precipitation<-NULL
 # 
-# urbandataset$build_count<-NULL
+urbandataset$build_count<-NULL
 # u_lm <- glmer(y ~ 1+ wealth_2 + edu_a + net_use + hh_size + ACT_use_u5 +
 #                 hh_members_age + sex_f + log_annual_precipitation +log_build_count+(1|state),family = binomial(link = "logit"),
 #               data = urbandataset)
 # 
 # 
 # 
-# num_cols<-c("wealth_2", "edu_a", "net_use", "hh_size", "ACT_use_u5",
-#             "hh_members_age", "sex_f", "log_annual_precipitation" , "log_build_count")
+num_cols<-c("wealth_2", "edu_a", "net_use", "hh_size", "ACT_use_u5",
+             "hh_members_age", "sex_f", "log_annual_precipitation" , "log_build_count")
 # 
 # 
-# urbandataset_scaled  <- urbandataset
-# urbandataset_scaled [,num_cols] <- scale(urbandataset_scaled [,num_cols])
+urbandataset_scaled  <- urbandataset
+urbandataset_scaled [,num_cols] <- scale(urbandataset_scaled [,num_cols])
 # m1_sc <- update(u_lm,data=urbandataset_scaled )
 # summary(m1_sc)
 
@@ -252,7 +313,7 @@ summary(u_iid)
 
 
 u_lm <- glmer(y ~ 1+ wealth_2 + edu_a + net_use + hh_size + ACT_use_u5 +
-                hh_members_age + sex_f + log(annual_precipitation) +log(build_count)+(1|state),family = binomial(link = "logit"),
+                hh_members_age + sex_f + log_annual_precipitation +log_build_count+(1|state),family = binomial(link = "logit"),
               data = urbandataset_scaled)
 
 summary(u_lm)
@@ -287,3 +348,193 @@ u_map_df <- left_join(state_sf, u_random_effects_, by =c("NAME_1" = "state.ID"))
 u_map <- tm_shape(u_map_df)+
   tm_polygons(col = "state.mean", midpoint =NA, palette = "-RdYlGn", breaks =c(-1.5, -1.0, -0.5, 0, 0.2, 1.0, 1.5, 2.0))+
   tm_text("NAME_1")
+
+u_map
+
+
+#regular urban inlamodel without random effect 
+u_rmod <- inla(y ~ 1 + wealth_2 + edu_a + net_use + hh_size + ACT_use_u5 +
+                 hh_members_age + sex_f + log(annual_precipitation) +log(build_count) + humidindex, family = 'binomial',
+               data = urbandataset, control.family = list(link = "logit"), control.predictor = list(compute=TRUE),
+               control.compute = list(cpo=TRUE, dic = TRUE)) 
+
+summary(u_rmod)
+
+
+
+#model with random intercept in state and random slope in education
+urbandataset$state_2 <- urbandataset$state
+u_iid_s <- inla(y ~ 1+ wealth_2 + edu_a + net_use + hh_size + ACT_use_u5 +
+                  hh_members_age + sex_f + log(annual_precipitation) +log(build_count)
+                + humidindex +f(state, model = "iid") + f(state_2, net_use, model = "iid"), family = 'binomial',
+                data = urbandataset, control.family = list(link = "logit"), control.predictor = list(compute=TRUE),
+                control.compute = list(cpo=TRUE, dic = TRUE))
+
+summary(u_iid_s) 
+
+
+
+
+#model with random intercept in state 
+u_iid <- inla(y ~ 1+ wealth_2 + edu_a + net_use + hh_size + ACT_use_u5 +
+                hh_members_age + sex_f + log(annual_precipitation) +log(build_count)
+              + humidindex +f(state, model = "iid"), family = 'binomial',
+              data = urbandataset, control.family = list(link = "logit"), control.predictor = list(compute=TRUE),
+              control.compute = list(cpo=TRUE, dic = TRUE))
+
+summary(u_iid)
+
+
+###################################################################################
+####final urban model
+###################################################################################
+
+#model with random intercept in state and region
+u_iid2 <- inla(y ~ 1+ wealth_2 + edu_a + net_use + hh_size + ACT_use_u5 +
+                 hh_members_age + sex_f + log(annual_precipitation) +log(build_count)
+               + humidindex +f(state, model = "iid") + f(region, model = "iid") +  f(state_2, net_use, model = "iid"), family = 'binomial',
+               data = urbandataset, control.family = list(link = "logit"), control.predictor = list(compute=TRUE),
+               control.compute = list(cpo=TRUE, dic = TRUE))
+
+summary(u_iid2) # model with the lowest dic and marginal loglikelihood
+
+
+pros <- sapply(u_iid2$marginals.fitted.values,
+               FUN = function(marg){1-inla.pmarginal(q = 0.1, marginal = marg)})
+
+probs_df <- as.data.frame(pros)
+
+#plots of the posterior for the betas 
+
+plot_fun<- function(data, x_label){
+  ggplot(data.frame(inla.smarginal(data)), aes(x, y)) +
+    geom_line(color = "green") +
+    theme_bw()+
+    geom_vline(xintercept=0, linetype="dashed", color = "red")+
+    xlab(x_label)+
+    ylab("")
+}
+
+
+data <- list(u_iid2$marginals.fixed$`(Intercept)`,u_iid2$marginals.fixed$wealth_2, u_iid2$marginals.fixed$edu_a, u_iid2$marginals.fixed$net_use, 
+             u_iid2$marginals.fixed$hh_size, u_iid2$marginals.fixed$ACT_use_u5, u_iid2$marginals.fixed$hh_members_age,
+             u_iid2$marginals.fixed$sex_f, u_iid2$marginals.fixed$`log(annual_precipitation)`, u_iid2$marginals.fixed$`log(build_count)`,
+             u_iid2$marginals.fixed$humidindex)
+
+labels_data <- list("intercept", "Highest wealth quintile", "Education", "Bednet Use", "Average Household size", "ACT_use",
+                    "Average Household age", "Proportion of females", "log(annual precipitation)", 
+                    "log(build_count)", "humidity index")
+
+plots<-map2(data, labels_data, plot_fun)
+
+figure<-ggarrange(plotlist = plots, nrow =4, ncol=3)
+figure<-annotate_figure(figure, left = "Density")
+figure
+
+
+#extracting state random intercept 
+r_random_effects_ <- u_iid2$summary.random[[1]]
+
+#extracting factors 
+r_random_effects_$ID <-str_to_title(r_random_effects_$ID)
+r_random_effects_$ID <- factor(r_random_effects_$ID, levels=rev(r_random_effects_$ID))
+r_random_effects_$ID<- trimws(r_random_effects_$ID)
+
+
+#quick plot of state_random intercept 
+
+r_fp <- ggplot(data=r_random_effects_, aes(x=ID, y=mean, ymin=`0.025quant`, ymax=`0.975quant`)) +
+  geom_pointrange() + 
+  geom_hline(yintercept=0, lty=2) +  # add a dotted line at x=1 after flip
+  coord_flip() +  # flip coordinates (puts labels on y axis)
+  xlab("Label") + ylab("Mean (95% CI)") +
+  theme_bw()  # use a white background
+print(r_fp)# no significant state variations 
+
+
+#map 
+
+#read in state shape file 
+stateshp <- readOGR(file.path(DataDir,"gadm36_NGA_shp"), layer ="gadm36_NGA_1", use_iconv=TRUE, encoding= "UTF-8")
+state_sf <- st_as_sf(stateshp)
+
+
+
+
+state_sf <- state_sf %>% mutate(NAME_1 = case_when(NAME_1 == "Federal Capital Territory" ~ "Fct Abuja",
+                                                   NAME_1 == "Nassarawa" ~ "Nasarawa",
+                                                   TRUE ~ as.character(NAME_1)
+))
+
+r_map_df <- left_join(state_sf, r_random_effects_, by =c("NAME_1" = "ID"))
+
+
+# we see spatial clustering of state-level random effects, although state effects are not statistically significant 
+r_map <- tm_shape(r_map_df)+
+  tm_polygons(col = "mean", midpoint =NA, palette = "-RdYlGn")+
+  tm_text("NAME_1")
+
+r_map
+
+
+#extracting region random intercept 
+r_random_effects_ <- u_iid2$summary.random[[2]]
+re_fp <- ggplot(data=r_random_effects_, aes(x=ID, y=mean, ymin=`0.025quant`, ymax=`0.975quant`)) +
+  geom_pointrange() + 
+  geom_hline(yintercept=0, lty=2) +  # add a dotted line at x=1 after flip
+  coord_flip() +  # flip coordinates (puts labels on y axis)
+  xlab("Label") + ylab("Mean (95% CI)") +
+  theme_bw()  # use a white background
+print(re_fp)#significant variation in the south west increasing likelihood of transmission and decreased likelihood in the north 
+
+
+#map 
+
+
+
+#############################################################################################
+#########regional map
+#read in state shape file 
+regionshp <-  readOGR(file.path(DataDir,"gadm36_NGA_shp"), layer ="gadm36_NGA_1", use_iconv=TRUE, encoding= "UTF-8")
+region_sf <- st_as_sf(regionshp)
+
+
+
+region_sf <- region_sf %>% mutate(NAME_1 = case_when(NAME_1 == "Federal Capital Territory" ~ "Fct Abuja",
+                                                     NAME_1 == "Nassarawa" ~ "Nasarawa",
+                                                     TRUE ~ as.character(NAME_1)
+))
+
+
+
+regions <- clu_variales_10_18[,c("state", "region")]
+
+
+region_sf <- region_sf %>% mutate(NAME_1 = tolower(NAME_1))
+
+
+region_sf <- left_join(region_sf, regions, by =c("NAME_1" = "state"))
+
+#We have missing data in three states below, we assign the region mannually
+region_sf$region[which(region_sf$NAME_1 =="kwara")]<-"north central"
+region_sf$region[which(region_sf$NAME_1 =="plateau")]<-"north central"
+region_sf$region[which(region_sf$NAME_1 =="zamfara")]<-"north west"
+
+#grouping states into regions
+region_sf <- region_sf %>% group_by(NAME_1) %>% slice(1L)
+region_sf_na<-subset(region_sf,region_sf$region=="NA")
+
+r_map_df <- left_join(region_sf, r_random_effects_, by =c("region" = "ID"))
+#r_map_df  <- r_map_df %>% group_by(region) %>% slice(1L)
+r_map_df <- st_as_sf(r_map_df)
+
+r_map_df%>% group_by(region) %>% 
+  summarise(geometry = sf::st_union(geometry)) %>% ungroup()
+
+# we see spatial clustering of state-level random effects, although state effects are not statistically significant 
+r_map <- tm_shape(r_map_df)+
+  tm_fill(col = "mean", midpoint =NA, palette = "-RdYlGn") +
+  tm_borders() +
+  tm_text("NAME_1", size = 0.8, col = "snow4")
+
+r_map
