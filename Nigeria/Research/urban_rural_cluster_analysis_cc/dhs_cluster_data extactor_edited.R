@@ -232,7 +232,7 @@ pfpr_rural <- unique(pfpr_rural, by = "hv001")
 table(pfpr_rural$Rural_urban)
 
 # proportion with secondary or greater education 
-look_for(dhs[[1]], "education")
+look_for(dhs[[1]], "region")
 val_labels(dhs[[1]]$hv106)
 
 pfpr_h_edu <- pfpr_dhs %>%  mutate(edu_a = ifelse(hv106 <2, 0,ifelse(hv106 == 8, NA, ifelse(hv106 == 2|3, 1, NA)))) %>% drop_na(edu_a)
@@ -430,6 +430,28 @@ table(kap_weak$kap_weak)
 clu_kap_weak<- result.fun('kap_weak', 'v001', design=svyd_weak_kap, kap_weak, "v007")
 head(clu_kap_weak)
 colnames(clu_kap_weak)[1]<- "hv001"
+
+
+#state names
+
+states18 <- pfpr_df[,c("hv001", "shstate")]
+states18 <- distinct(states18)
+states18 <- get_labels(states18)
+
+states18 <- pfpr_df[,c("hv001", "shstate")]
+labeles  <- get_labels(states18$shstate)
+
+labeles  <- as.data.frame(labeles)
+
+#write.csv(states18, "states18.csv")
+
+#regiosns
+regions18 <- pfpr_df[,c("hv001", "hv024")]
+regions18 <- distinct(regions18)
+write.csv(regions18, "regions18.csv")
+
+
+dataset2 <- regions18 %>% mutate(hv024 = get_labels(hv024))
 
 # bind the datasets 
 
