@@ -434,6 +434,17 @@ clu_kap_weak<- result.fun('kap_weak', 'v001', design=svyd_weak_kap, kap_weak, "v
 head(clu_kap_weak)
 colnames(clu_kap_weak)[1]<- "hv001"
 
+#adding states names
+
+states10<- pfpr_df[,c("hv001", "shstate")]
+states10 <- distinct(states10)
+write.csv(states10, "states10.csv")
+
+#regiosns
+regions18 <- pfpr_df[,c("hv001", "hv024")]
+regions18 <- distinct(regions18)
+write.csv(regions18, "regions15.csv")
+
 # bind the datasets 
 
 all_clu_mis <- left_join(clu_est, clu_wealth, by = "hv001") %>% 
