@@ -122,14 +122,34 @@ r_iid2 <- inla(y ~ 1+ wealth_2 + edu_a + net_use + hh_size + ACT_use_u5 +
 
 summary(r_iid2) # model with the lowest dic and marginal loglikelihood
 
+#C##################onverting between  Log-odds to Probability#################
+
+#extraction and converting results to dataframe
+r_iid2_fixed <- as.data.frame(r_iid2$summary.fixed)
+
+#making column names a column
+r_iid2_fixed <- cbind(coefs = rownames(r_iid2_fixed), r_iid2_fixed)
+rownames(r_iid2_fixed) <- 1:nrow(r_iid2_fixed)
+
+#changing row names
+names(r_iid2_fixed)[names(r_iid2_fixed) == "0.975quant"] <- "logodds975"
+names(r_iid2_fixed)[names(r_iid2_fixed) == "0.5quant"] <- "logodds5"
+names(r_iid2_fixed)[names(r_iid2_fixed) == "0.025quant"] <- "logodds25"
+
+#
+r_iid2_prob <- r_iid2_fixed %>% mutate(probs_0.975 = plogis(logodds975))
+r_iid2_prob <- r_iid2_prob %>% mutate(probs_0.5 = plogis(logodds5))
+r_iid2_prob <- r_iid2_prob %>% mutate(probs_0.025 = plogis(logodds25))
+r_iid2_prob <- r_iid2_prob[,c("coefs", "probs_0.025", "probs_0.5", "probs_0.975")]
+
 #We can calculate the probabilites that malaria prevalence rates are higher for all hospitals
 #These exceedance probabilities indicate that the probability that higher malaria prevalence 
 #exceeds 0.1 is highest for observation number 1138 (probability equal to 1)
 
-pros <- sapply(r_iid2$marginals.fitted.values,
-               FUN = function(marg){1-inla.pmarginal(q = 0.1, marginal = marg)})
+#pros <- sapply(r_iid2$marginals.fitted.values,
+#               FUN = function(marg){1-inla.pmarginal(q = 0.1, marginal = marg)})
 
-probs_df <- as.data.frame(pros)
+#probs_df <- as.data.frame(pros)
 
 #plots of the posterior for the betas 
 
@@ -289,11 +309,11 @@ summary(u_iid)
 library(lme4)
 #st_geometry(urbandataset) <- NULL
 # 
-urbandataset$log_annual_precipitation<-log(urbandataset$annual_precipitation)
-urbandataset$log_build_count<-log(urbandataset$build_count)
-urbandataset$annual_precipitation<-NULL
+#urbandataset$log_annual_precipitation<-log(urbandataset$annual_precipitation)
+#urbandataset$log_build_count<-log(urbandataset$build_count)
+#urbandataset$annual_precipitation<-NULL
 # 
-urbandataset$build_count<-NULL
+#urbandataset$build_count<-NULL
 # u_lm <- glmer(y ~ 1+ wealth_2 + edu_a + net_use + hh_size + ACT_use_u5 +
 #                 hh_members_age + sex_f + log_annual_precipitation +log_build_count+(1|state),family = binomial(link = "logit"),
 #               data = urbandataset)
@@ -390,6 +410,7 @@ summary(u_iid)
 ###################################################################################
 
 #model with random intercept in state and region
+urbandataset$state_2 <- urbandataset$state
 u_iid2 <- inla(y ~ 1+ wealth_2 + edu_a + net_use + hh_size + ACT_use_u5 +
                  hh_members_age + sex_f + log(annual_precipitation) +log(build_count)
                + humidindex +f(state, model = "iid") + f(region, model = "iid") +  f(state_2, net_use, model = "iid"), family = 'binomial',
@@ -399,10 +420,29 @@ u_iid2 <- inla(y ~ 1+ wealth_2 + edu_a + net_use + hh_size + ACT_use_u5 +
 summary(u_iid2) # model with the lowest dic and marginal loglikelihood
 
 
-pros <- sapply(u_iid2$marginals.fitted.values,
-               FUN = function(marg){1-inla.pmarginal(q = 0.1, marginal = marg)})
+#extraction and converting results to dataframe
+u_iid2_fixed <- as.data.frame(u_iid2$summary.fixed)
 
-probs_df <- as.data.frame(pros)
+#making column names a column
+u_iid2_fixed <- cbind(coefs = rownames(u_iid2_fixed), u_iid2_fixed)
+rownames(u_iid2_fixed) <- 1:nrow(u_iid2_fixed)
+
+#changing row names
+names(u_iid2_fixed)[names(u_iid2_fixed) == "0.975quant"] <- "logodds975"
+names(u_iid2_fixed)[names(u_iid2_fixed) == "0.5quant"] <- "logodds5"
+names(u_iid2_fixed)[names(u_iid2_fixed) == "0.025quant"] <- "logodds25"
+
+#
+u_iid2_prob <- u_iid2_fixed %>% mutate(probs_0.975 = plogis(logodds975))
+u_iid2_prob <- u_iid2_prob %>% mutate(probs_0.5 = plogis(logodds5))
+u_iid2_prob <- u_iid2_prob %>% mutate(probs_0.025 = plogis(logodds25))
+u_iid2_prob <- u_iid2_prob[,c("coefs", "probs_0.025", "probs_0.5", "probs_0.975")]
+u_iid2_prob
+
+#pros <- sapply(u_iid2$marginals.fitted.values,
+#               FUN = function(marg){1-inla.pmarginal(q = 0.1, marginal = marg)})
+
+#probs_df <- as.data.frame(pros)
 
 #plots of the posterior for the betas 
 
