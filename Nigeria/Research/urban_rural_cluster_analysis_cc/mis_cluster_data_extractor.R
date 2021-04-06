@@ -28,10 +28,10 @@ sys.source(file = file.path("C:/Users/pc/Documents/NU - Malaria Modeling/Non Lin
 options(survey.lonely.psu="adjust") # this option allows admin units with only one cluster to be analyzed
 
 
-dhs <- list.files(pattern = ".*MIS2015PR.*\\.DTA", recursive = F, full.names = TRUE)
+dhs <- list.files(pattern = ".*MIS2010PR.*\\.DTA", recursive = F, full.names = TRUE)
 dhs <- sapply(dhs, read_dta, simplify = F)
 
-dhs2 <- list.files(pattern = ".*MIS2015KR.*\\.DTA", recursive = F, full.names = TRUE)
+dhs2 <- list.files(pattern = ".*MIS2010KR.*\\.DTA", recursive = F, full.names = TRUE)
 dhs2 <- sapply(dhs2, read_dta, simplify = F)
 # clean and select pfpr data 
 
@@ -132,9 +132,9 @@ clu_roof <- result.fun('house_roof', 'hv001', design=svyd_roof, pfpr_roof, "hv00
 head(clu_roof)
 
 #Estimate of the proportion of clusters with good housing quality
-pfpr_housing<- pfpr_df %>%  mutate(floor_type = ifelse(hv214 == 30| hv214 == 31|
-                                                         hv214 == 33| hv214 == 34|
-                                                         hv214 == 35|hv214 == 36,1, 0))
+pfpr_housing<- pfpr_df %>%  mutate(floor_type = ifelse(hv213 == 30| hv214 == 31|
+                                                         hv213 == 33| hv214 == 34|
+                                                         hv213 == 35|hv214 == 36,1, 0))
 
 pfpr_housing<- pfpr_housing %>%  mutate(wall_type = ifelse(hv214 == 30| hv214 == 31|
                                                              hv214 == 33| hv214 == 34|
@@ -246,6 +246,7 @@ svyd_edu <- svydesign.fun(pfpr_edu)
 clu_edu <- result.fun('edu_a', 'hv001', design=svyd_edu, pfpr_edu, "hv007")
 head(clu_edu)
 
+write.csv(clu_edu, "edu10.csv")
 
 #ITN use proportion among u5
 var_label(pfpr_data$hml16)
