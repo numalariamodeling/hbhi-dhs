@@ -34,7 +34,22 @@ ProjectDir <- file.path(NuDir, "projects", "hbhi_nigeria")
 clu_variales_10_18 <- read.csv(file.path(DataDir, "Nigeria_2010_2018_clustered_final_dataset.csv"), 
                  header = T, sep = ',')
 
-table(clu_variales_10_18$state)
+#Loading cluster points
+
+dhs18_sf <- st_read(file.path(DataDir,"NG_2018_DHS_11072019_1720_86355/NGGE7BFL/NGGE7BFL.shp"),)
+mis15_sf <- st_read(file.path(DataDir,"NG_2015_MIS_06192019/NGGE71FL/NGGE71FL.shp"),)
+mis10_sf <- st_read(file.path(DataDir,"NG_2010_MIS_06192019/NGGE61FL/NGGE61FL.shp"),)
+
+# join dhs variables to cluster points by year 
+
+df_18 <- clu_variales_10_18 %>% filter(data_source == "dhs2018") 
+df_18_fin <- left_join(dhs18_sf, df_18, by = c("DHSCLUST" ="hv001"))
+df_15 <- clu_variales_10_18 %>% filter(data_source == "mis2015") 
+df_15_fin <- left_join(mis15_sf, df_15, by = c("DHSCLUST" ="hv001"))
+df_10 <- clu_variales_10_18 %>% filter(data_source == "mis2010") 
+df_10_fin <- left_join(mis10_sf, df_10, by = c("DHSCLUST" = "hv001"))
+clu_variales_10_18 <- rbind(df_18_fin, df_15_fin, df_10_fin)
+
 
 # Binarize response:
 clu_variales_10_18$y <- ifelse(clu_variales_10_18$p_test < 0.1, 0,1)
@@ -54,9 +69,10 @@ clu_variales_10_18 <- clu_variales_10_18 %>% mutate(log_pop_den = log(pop_den))
 
 
 #sub setting variables of interest 
-clu_variales_10_18 <- clu_variales_10_18[,c("hv001", "y", "wealth_2", "edu_a", "hh_size",
+clu_variales_10_18 <- as.data.frame(clu_variales_10_18)
+clu_variales_10_18 <- clu_variales_10_18[,c("y", "wealth_2", "edu_a", "hh_size",
                                             "ACT_use_u5", "pop_den","hh_members_age", "sex_f", "humidindex",
-                                            "annual_precipitation", "net_use", "Rural_urban", "data_source", "state", "build_count", "region")]
+                                            "annual_precipitation", "net_use", "Rural_urban", "data_source", "state", "build_count", "region", "LONGNUM", "LATNUM", "geometry")]
 
 
 # Create reduced dataset for model 2:
@@ -217,9 +233,16 @@ r_map_df <- left_join(state_sf, r_random_effects_, by =c("NAME_1" = "ID"))
 
 
 # we see spatial clustering of state-level random effects, although state effects are not statistically significant 
+#setting cluster points 
+cluster_points <- st_as_sf(ruraldataset)# %>% 
+  #st_as_sf('LONGNUN', 'LATNUN')
+
 r_map <- tm_shape(r_map_df)+
   tm_polygons(col = "mean", midpoint =NA, palette = "-RdYlGn")+
-  tm_text("NAME_1")
+  tm_text("NAME_1") +
+  tm_shape(cluster_points, col = "mean", midpoint =NA, palette = "-RdYlGn") +
+  tm_symbols(col = "azure4", scale = .3)
+ 
 
 r_map
 
@@ -278,11 +301,14 @@ r_map_df <- st_as_sf(r_map_df)
 r_map_df%>% group_by(region) %>% 
   summarise(geometry = sf::st_union(geometry)) %>% ungroup()
 
-# we see spatial clustering of state-level random effects, although state effects are not statistically significant 
+# we see spatial clustering of state-level random effects, although state effects are not statistically significant
 r_map <- tm_shape(r_map_df)+
   tm_fill(col = "mean", midpoint =NA, palette = "-RdYlGn", breaks = c(-1, -0.5, -0.16, 0, 0.05, 1, 1.5)) +
   tm_borders() +
-  tm_text("NAME_1", size = 0.8, col = "snow4")
+  #tm_text("NAME_1", size = 0.8, col = "snow4") +
+  tm_shape(cluster_points) +
+  tm_symbols(col = "black", scale = .3)
+
 
 r_map
 
