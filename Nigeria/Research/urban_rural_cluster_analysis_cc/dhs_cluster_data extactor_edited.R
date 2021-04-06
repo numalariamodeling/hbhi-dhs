@@ -133,9 +133,9 @@ clu_roof <- result.fun('house_roof', 'hv001', design=svyd_roof, pfpr_roof, "hv00
 head(clu_roof)
 
 #Estimate of the proportion of clusters with good housing quality
-pfpr_housing<- pfpr_df %>%  mutate(floor_type = ifelse(hv214 == 30| hv214 == 31|
-                                                         hv214 == 33| hv214 == 34|
-                                                         hv214 == 35|hv214 == 36,1, 0))
+pfpr_housing<- pfpr_df %>%  mutate(floor_type = ifelse(hv213== 30| hv213 == 31|
+                                                         hv213 == 33| hv213 == 34|
+                                                         hv213 == 35|hv213 == 36,1, 0))
 
 pfpr_housing<- pfpr_housing %>%  mutate(wall_type = ifelse(hv214 == 30| hv214 == 31|
                                                              hv214 == 33| hv214 == 34|
