@@ -13,6 +13,7 @@ lapply(x, library, character.only = TRUE) #applying the library function to pack
 smc <- read.csv("bin/smc_table/smc_df2_fin_by_round.csv", colClasses=c("month" = "character")) %>% mutate(adm1 = trimws(adm1), month = as.Date(month, format="%d/%m/%Y"))
  
 smc_hag <- read.csv("bin/smc_table/SMC_overall_cov_Fhag_2018_2019.csv") %>% mutate(adm1 = trimws(adm1))
+summary(smc_hag$Fhag)
 
 smc_2 <- left_join(smc, smc_hag, by = c("adm1", "round", "year"))
 

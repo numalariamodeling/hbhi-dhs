@@ -33,21 +33,11 @@ SimDir <- file.path(ProjectDir, 'simulation_input')
 source(file.path(VarDir, "generic_functions", "DHS_fun.R"))
 
 
-# # Reading in the necessary packages 
-# x <- c("tidyverse", "survey", "haven", "ggplot2", "purrr", "summarytools", "stringr", "sp", "rgdal", "raster",
-#        "lubridate", "RColorBrewer","sf", "shinyjs", "tmap", "knitr", "labelled", "plotrix", "arules", "foreign",
-#        "fuzzyjoin", "splitstackshape", "magrittr", "caTools", "nnt")
-# 
-# lapply(x, library, character.only = TRUE) #applying the library function to packages
 
 
-
-
-
-# set document path to current script path 
-#setwd("C:/Users/pc/Documents/NU - Malaria Modeling/Non Linear")
-
-
+## -----------------------------------------
+### Call in Chilo's function files 
+## -----------------------------------------
 
 # reads in functions so we can alias it using funenv$
 funEnv <- new.env()
@@ -55,25 +45,25 @@ sys.source(file = file.path("C:/Users/ido0493/Box/NU-malaria-team/data/nigeria_d
            envir = funEnv, toplevel.env = funEnv)
 
 
+
+## -----------------------------------------
+### Read in the data and subset 
+## -----------------------------------------
+
 options(survey.lonely.psu="adjust") # this option allows admin units with only one cluster to be analyzed
 
-dhs <-read.files( ".*NGPR7AFL.*\\.DTA", DataDir, read_dta)
-dhs_ir <- read.files( ".*NGIR7AFL.*\\.DTA", DataDir, read_dta)
+dhs <-read.files( ".*NGPR7AFL.*\\.DTA", DataDir, read_dta) %>% map(~filter(.x, hv042 == 1 & hv103 == 1 & hc1 %in% c(6:59) & hml32 %in% c(0, 1,6)))
+dhs_ir <- read.files( ".*NGIR7AFL.*\\.DTA", DataDir, read_dta) %>%  map(~dplyr::select(.x, v104, v160, v135))
 
-# dhs <- list.files(path = datapath, pattern = ".*NGPR7AFL.*//.DTA", recursive = F, full.names = TRUE)
-# dhs <- sapply(dhs, read_dta, simplify = F)
 
 dhs2 <- read.files(".*NGKR7AFL.*\\.DTA", DataDir, read_dta)
-#dhs2 <- sapply(dhs2, read_dta, simplify = F)
-# clean and select pfpr data 
 
 
 
-look_for(dhs [[1]], "altitude")
 
+look_for(dhs2 [[1]], "visitor")
 
-
-table(dhs[[1]]$hml32) # frequency table for smear test 
+table(dhs2[[1]]$v135) # frequency table for smear test 
 
 #subsetting for microscopy (denominator -hh selected for hemoglobin, child slept there last night and have result for test)
 
@@ -82,15 +72,16 @@ pfpr_df <- dhs[[1]] %>% filter(hv042 == 1 & hv103 == 1 & hc1 %in% c(6:59) & hml3
 
 
 
+## -----------------------------------------
+### Analyze data to obtain cluster values  
+## -----------------------------------------
 
 # prep dataset for cluster level analysis - we start with urban cluster analysis 
 
 val_labels(pfpr_df$hv025) # value labels for place of residence, 1 = urban and 2 = rural
 
 pfpr_place <- pfpr_df %>% filter(hv025 == 1)
-#pfpr_dhs <- pfpr_data%>% filter(hv025 == 1)
-# pfpr_place <- pfpr_df
-# pfpr_dhs <- pfpr_data
+
 # estimate cluster-level malaria prevalence
 
 pfpr_place<- funEnv$dataclean.para(pfpr_place, hv005, hc1, hml32, 'hml32', 'p_test') 
@@ -99,6 +90,9 @@ svy_mal <- funEnv$svydesign.fun(pfpr_place)
 
 clu_est <- funEnv$result.fun('p_test', 'hv001', design=svy_mal, pfpr_place, "hv007")
 head(clu_est)
+
+
+
 
 # next we estimate proportion of people in high SES by cluster
 # recode the weath quintile variable 
@@ -116,9 +110,6 @@ clu_wealth <- funEnv$result.fun('wealth_2', 'hv001', design=svyd_wealth, pfpr_we
 head(clu_wealth)
 
 
-#disagreegate wealth 
-# look_for(dhs[[1]], "material")
-# table(pfpr_df$hv205)
 
 
 #Housing quality

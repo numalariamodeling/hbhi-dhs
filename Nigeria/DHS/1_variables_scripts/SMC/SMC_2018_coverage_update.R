@@ -1,22 +1,34 @@
-SMC_doses <- read.csv("data/SMC_2018_doses_distri_LGA.csv") #%>% filter(State == "Borno")
+Drive <- file.path(gsub("[\\]", "/", gsub("Documents", "", Sys.getenv("HOME"))))
+NuDir <- file.path(Drive, "Box", "NU-malaria-team")
+NGDir <-file.path(NuDir, "data", "nigeria_dhs",  "data_analysis")
+DataDir <-file.path(NGDir, "data")
+ResultDir <-file.path(NGDir, "results")
+BinDir <- file.path(NGDir, "bin")
+SrcDir <- file.path(NGDir, "src", "DHS")
+VarDir <- file.path(SrcDir, "1_variables_scripts")
+
+
+source(file.path(VarDir, "generic_functions", "DHS_fun.R"))
+
+SMC_doses <- read_csv(file.path(DataDir, "SMC_2018_doses_distri_LGA.csv")) #%>% filter(State == "Borno")
 head(SMC_doses)
 
 SMC_doses[is.na(SMC_doses)] <- 0
 
-# SMC_target <-SMC_doses %>%  pivot_longer(cols = starts_with("U5_target"), names_to = "cycle", values_to = "values") %>% 
-#                   mutate(cycle = ifelse(cycle == "U5_target_cy_one", 1, ifelse(cycle ==  "U5_target_cy_two", 2,
-#                                                       ifelse(cycle== "U5_target_cy_three",3,
-#                                                              ifelse(cycle == "U5_target_cy_four", 4, NA)))), 
-#                          values_new = values/1000) %>% 
-#                     dplyr::select(LGA = LGAs, cycle, values_new)
-# head(SMC_target)
+SMC_target <-SMC_doses %>%  pivot_longer(cols = starts_with("U5_target"), names_to = "cycle", values_to = "values") %>%
+                  mutate(cycle = ifelse(cycle == "U5_target_cy_one", 1, ifelse(cycle ==  "U5_target_cy_two", 2,
+                                                      ifelse(cycle== "U5_target_cy_three",3,
+                                                             ifelse(cycle == "U5_target_cy_four", 4, NA)))),
+                         values_new = values/1000) %>%
+                    dplyr::select(LGA = LGAs, cycle, values_new)
+head(SMC_target)
 # 
-# plot <- ggplot(SMC_target, aes(x = cycle, y = values_new)) +
-#           geom_line(aes(color = LGA)) +
-#        ylab("LGA SMC U5 Target Population") +
-#         xlab("SMC round") +
-#          theme(legend.position = "none") 
-# table(SMC_target$LGA)
+plot <- ggplot(SMC_target, aes(x = cycle, y = values_new)) +
+          geom_line(aes(color = LGA)) +
+       ylab("LGA SMC U5 Target Population") +
+        xlab("SMC round") +
+         theme(legend.position = "none")
+table(SMC_target$LGA)
 # 
 # png("results/SMC_coverage/U5_target.png", units="px", width=800, height=800, res=150)
 # plot(plot, col = adjustcolor(alpha = 0.5))
@@ -25,24 +37,24 @@ SMC_doses[is.na(SMC_doses)] <- 0
 
 # SMC coverage for all other LGAs 
 
-# SMC_r_prop <- SMC_doses %>% filter(State !="Borno") %>%  mutate(U5_target_max = pmax(U5_target_cy_one, U5_target_cy_two, U5_target_cy_three,
-#                                                         U5_target_cy_four)) %>% 
-#                               mutate_at(vars(num_reach_cy_one, num_reach_cy_two, num_reach_cy_three,
-#                                              num_reach_cy_four), '/', quote(U5_target_max)) %>% 
-#                 dplyr::select(LGAs,prop_cy_one = num_reach_cy_one, prop_cy_two = num_reach_cy_two,
-#                               prop_cy_three = num_reach_cy_three, prop_cy_four = num_reach_cy_four)
-# head(SMC_r_prop)
+SMC_r_prop <- SMC_doses %>% filter(State !="Borno") %>%  mutate(U5_target_max = pmax(U5_target_cy_one, U5_target_cy_two, U5_target_cy_three,
+                                                        U5_target_cy_four)) %>%
+                              mutate_at(vars(num_reach_cy_one, num_reach_cy_two, num_reach_cy_three,
+                                             num_reach_cy_four), '/', quote(U5_target_max)) %>%
+                dplyr::select(LGAs,prop_cy_one = num_reach_cy_one, prop_cy_two = num_reach_cy_two,
+                              prop_cy_three = num_reach_cy_three, prop_cy_four = num_reach_cy_four)
+head(SMC_r_prop)
 
 # next we compute for Borno adjusting for overestimate and underestimate of target
-
-SMC_r_prop_2 <- SMC_doses %>% #filter(State =="Borno") %>% 
-  mutate(U5_target_cy_one = ifelse(LGAs == "Bama",U5_target_cy_two,
-                                   ifelse(LGAs == "Dikwa", U5_target_cy_two,
-                                          ifelse(LGAs == "Mobbar", U5_target_cy_two, U5_target_cy_one)))) #%>% 
-# mutate(prop_cy_one = num_reach_cy_one/U5_target_cy_one, 
+# 
+# SMC_r_prop_2 <- SMC_doses %>% #filter(State =="Borno") %>%
+#   mutate(U5_target_cy_one = ifelse(LGAs == "Bama",U5_target_cy_two,
+#                                    ifelse(LGAs == "Dikwa", U5_target_cy_two,
+#                                           ifelse(LGAs == "Mobbar", U5_target_cy_two, U5_target_cy_one)))) #%>%
+# mutate(prop_cy_one = num_reach_cy_one/U5_target_cy_one,
 #        prop_cy_two = num_reach_cy_two/U5_target_cy_two,
-#                 prop_cy_three = num_reach_cy_three/U5_target_cy_three, 
-#        prop_cy_four = num_reach_cy_four/U5_target_cy_four) %>% 
+#                 prop_cy_three = num_reach_cy_three/U5_target_cy_three,
+#        prop_cy_four = num_reach_cy_four/U5_target_cy_four) %>%
 # dplyr::select(LGAs, prop_cy_one,prop_cy_two,prop_cy_three, prop_cy_four)
 
 
@@ -118,10 +130,10 @@ SMC_r_prop_2 <- SMC_doses %>% #filter(State =="Borno") %>%
 
 # we read in the MC data and plot 
 
-# MC <- read.csv("data/MC_SMC_coverage_by_cycle.csv") %>%
-#   dplyr::filter(grepl('EoR cycle 4|EoC coverage surveys', Data_source)) %>% 
+# MC <- read_csv(file.path(DataDir,  "MC_SMC_coverage_by_cycle.csv")) %>%
+#   dplyr::filter(grepl('EoR cycle 4|EoC coverage surveys', Data_source)) %>%
 #   mutate(cycle_2 = str_sub(cycle, 4, 12), cycle_2 = ifelse(Data_source == 'EoR cycle 4', "cycle 4", cycle_2))
-# 
+
 # 
 # p <- ggplot(MC, aes(x=as.character(cycle_2), y=coverage, fill = as.character(cycle_2))) + 
 #   geom_violin(trim = FALSE, alpha = 0.5) +
@@ -135,7 +147,7 @@ SMC_r_prop_2 <- SMC_doses %>% #filter(State =="Borno") %>%
 # plot(p, col = adjustcolor(alpha = 0.5))
 # dev.off()
 
-MC <- read.csv("data/MC_SMC_coverage_by_cycle.csv") %>% 
+MC <- read_csv(file.path(DataDir,  "MC_SMC_coverage_by_cycle.csv")) %>% 
   dplyr::filter(grepl('SPAQ treatments provided to ineligible children aged 5 and above', describe)) %>% 
   dplyr::filter(grepl('EoC', cycle)) %>%  mutate(cycle_2 = str_sub(Data_source, 5, 12))
 

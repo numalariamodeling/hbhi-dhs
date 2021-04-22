@@ -19,7 +19,17 @@ if (Variable == "PfPR"){
   key_list <- lapply(key_list, st_drop_geometry)
   key_list <- Map(cbind, key_list, v001 = NGA_ID)
   #subsetting for microscopy (denominator -hh selected for hemoglobin, child slept there last night and have result for test)
-  pfpr.ls <- lapply(pfpr.ls, subset, hv042 == 1 & hv103 == 1 & hml32 %in% c(0, 1,6) )
+  pfpr.ls <- lapply(pfpr.ls, subset, hv042 == 1 & hv103 == 1 & hml32 %in% c(0, 1, 6) )
+  
+  #creating machine learning dataset with PfPR
+  ifelse(!dir.exists(file.path("P:/GA_machine_learning", "PfPR")), 
+         dir.create(file.path("P:/GA_machine_learning", "PfPR")), FALSE)
+  ml_ds_path <- file.path("P:/GA_machine_learning", "PfPR")
+  
+  pfpr.df <- lapply(pfpr.ls, subset, hml32 %in% c(0, 1))
+  names(pfpr.df)<- c("2010_MIS_dataset", "2015_MIS_dataset", "2018_MIS_dataset")
+  lapply(1:length(pfpr.df), function(i) write_dta(pfpr.df[[i]], 
+                                                  path = paste0(ml_ds_path,"/", names(pfpr.df[i]), ".DTA")))
   
   
   ifelse(!dir.exists(file.path(ResultDir, "PfPR")), 
