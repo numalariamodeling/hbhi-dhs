@@ -51,7 +51,7 @@ pfpr_df <- pfpr_data %>% filter(hv042 == 1 & hv103 == 1 & hc1 %in% c(6:59) & hml
 
 # prep dataset for cluster level analysis - we start with urban cluster analysis 
 
-val_labels(pfpr_df$hv025) # value labels for place of residence, 1 = urban and 2 = rural
+val_labels(pfpr_df$hv270) # value labels for place of residence, 1 = urban and 2 = rural
 
 #pfpr_place <- pfpr_df %>% filter(hv025 == 1)
 #pfpr_dhs <- pfpr_data%>% filter(hv025 == 1)
@@ -69,7 +69,7 @@ head(clu_est)
 
 # next we estimate proportion of people in high SES by cluster
 # recode the weath quintile variable 
-table(pfpr_df$hv270)
+table(pfpr_df$hv106)
 
 pfpr_wealth <- pfpr_df %>%  mutate(wealth = ifelse(hv270 <4, 0, 1))
 table(pfpr_wealth$wealth)
@@ -362,6 +362,27 @@ clu_u5_care<- result.fun('ACT_use_u5', 'v001', design=svyd_care, pfpr_care, "v00
 head(clu_u5_care)
 colnames(clu_u5_care)[1]<- "hv001"
 #colnames(clu_u5_care)[4]<- "hv007"
+
+#fever prevelence
+
+look_for(dhs2[[1]], "fever")
+
+table(dhs2[[1]]$h22)
+
+pfpr_fever <- dhs2[[1]] %>% filter(b5 == 1  & b8 <  5) 
+
+pfpr_fever <- dataclean(pfpr_fever, v005, v005,'h22', "fever_prev")
+pfpr_fever <- pfpr_fever %>% filter(fever_prev != 8)
+table(pfpr_fever$fever_prev)
+
+svyd_fever <- svydesign.fun(pfpr_fever)
+table(pfpr_fever$fever_prev)
+
+clu_u5_fever<- result.fun('fever_prev', 'v001', design=svyd_fever, pfpr_fever, "v007")
+head(clu_u5_fever)
+colnames(clu_u5_fever)[1]<- "hv001"
+
+write.csv(clu_u5_fever, "clu_u5_fever18.csv")
 
 # population density
 clu_pop_den <- read.csv("NGGC7BFL.csv")%>% 

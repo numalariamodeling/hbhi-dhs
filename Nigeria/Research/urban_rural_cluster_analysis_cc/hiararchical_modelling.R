@@ -87,30 +87,47 @@ comineddataset <- df_10_18_fin
 #GETTING nearest neibour clusters
 dat_df <- ruraldataset
 dat_ds <- as.data.frame(ruraldataset)
-dat_sf <- dat_ds[,c("LONGNUM", "LATNUM","DHSCLUST", "y", "wealth_2", "edu_a", "hh_size",
-                    "ACT_use_u5", "pop_den","hh_members_age", "sex_f", "humidindex",
-                    "annual_precipitation", "net_use", "Rural_urban", "data_source")]
+dat_sf <- dat_ds[,c("LONGNUM", "LATNUM","DHSCLUST")]
 
 
 
 table(dat_df$y)
 
 coordinates(dat_sf) <- ~ LONGNUM + LATNUM
-neib <- knn2nb(knearneigh(dat_sf, k = 1))
+#neib <- knn2nb(knearneigh(dat_sf, k = 1))
+neib  <- voronoi.polygons(SpatialPoints(dat_sf))
+plot(neib)
 
-
+                         
 #neib <- dnearneigh(coordinates(dat_sf), 0, 10, longlat = TRUE)
-neib_df <- neighborsDataFrame(neib) 
-summary.nb(neib_df)
+#neib_df <- neighborsDataFrame(neib) 
+summary(neib)
 
 
-W_neib_df <- nb2mat(neib , style="B") 
+## Transform 'SpatialPolygonsDataFrame' object to 'sf' class
+neib <- sf::st_as_sf(neib)
+
+## Compute the neighbours list of class 'nb'
+#if(is.null(neib)) neib <- spdep::poly2nb(neib)
+nb.r <- poly2nb(neib, queen=T)
+
+
+mat <- nb2mat(nb.r, style="B")
+summary(mat)
+
+plot(neib)
+row = 1015
+indx=dat_df[[row]]  # Determine adjacent districts (by row in shapefile)
+indx
+
+row.names(dat_df) <- NULL
+#W_neib_df <- nb2mat(neib , style="B") 
 
 
 #fitting Model that accounts for random effects that is non-spatial (iid), 
 
-form_10to18 <- glm(y ~ wealth_2 + edu_a + net_use + hh_size + ACT_use_u5 + pop_den + 
-  hh_members_age + sex_f + annual_precipitation, data = dat_df, family = "binomial")
+form_10to18 <- y ~ wealth_2 + edu_a + net_use + hh_size + ACT_use_u5 + pop_den + 
+  hh_members_age + sex_f + annual_precipitation
 
 
 all_iid <- inla(update(form_10to18, . ~. + f(DHSCLUST, model = "iid")),
@@ -118,7 +135,7 @@ all_iid <- inla(update(form_10to18, . ~. + f(DHSCLUST, model = "iid")),
                    control.compute = list(dic = TRUE, waic = TRUE, cpo = TRUE),
                    control.predictor = list(compute = TRUE)
 )
-summary(form_10to18)
+summary(all_iid)
 
 
 #fit the Simple INLA model with no random effects
@@ -136,7 +153,7 @@ summary(dat_simp)
 # Specify linear predictor
 
 formula_nieb = y ~ edu_a + net_use + hh_size  + pop_den + 
-  hh_members_age + sex_f + annual_precipitation + f(wealth_2, model ="bym", graph = W_neib_df)
+  hh_members_age + sex_f + annual_precipitation + f(wealth_2, model ="bym", graph = mat)
 # Run model
 result = inla (formula_nieb ,family = " binomial ", data = dat_df)
 
