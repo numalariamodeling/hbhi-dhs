@@ -33,15 +33,24 @@ Sem_Dir <- file.path(NuDir, "presentations", "team member archive_Ifeoma", "2104
 ####Loading data
 ###################################################################################
 # Load pre-clustered data:
-clu_variales_10_18 <- read.csv(file.path(DataDir, "Nigeria_2010_2018_clustered_final_dataset.csv"), 
+clu_variales_10_18 <- read.csv(file.path(DataDir, "Nigeria_2010_2018_clustered_final_dataset.csv"),
                  header = T, sep = ',')
 
 
+urbandataset_ML <- clu_variales_10_18 %>% filter(Rural_urban == 1) %>%
+  dplyr::select(hv001,p_test, wealth_2, u5_prop, preg,edu_a, hh_size, ACT_use_u5,pop_den,
+                hh_members_age, sex_f, data_source, humidindex,
+                annual_precipitation,rainfall, house_floor,house_roof, house_wall,
+                housing_qua, net_use, net_use_access, net_use_preg,  build_count, state, region, pop_count, housing_qua, interview_month)
+
+urbandataset_ML$y <- ifelse(urbandataset_ML$p_test < 0.1, 0, 1)
+write_csv(urbandataset_ML, paste0(BinDir, '/urban_dataset_DHS/urbandataset.csv'))
 
 #filtering by residence type
 urbandataset <- clu_variales_10_18 %>% filter(Rural_urban == 1) %>%  
   dplyr::select(hv001,p_test, wealth_2, u5_prop, preg,edu_a, hh_size, ACT_use_u5,pop_den,
-                hh_members_age, sex_f, data_source, humidindex, Rural_urban, annual_precipitation,housing_qua, net_use, build_count, state, pop_count, housing_qua) %>% 
+                hh_members_age, sex_f, data_source, humidindex, Rural_urban,
+                annual_precipitation,housing_qua, net_use, build_count, state, region, pop_count, housing_qua) %>% 
   na.omit()
 
 table(urbandataset$data_source)

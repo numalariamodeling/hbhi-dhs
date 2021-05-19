@@ -200,16 +200,16 @@ ci_df_repDS= read.csv(file.path(box_hbhi_filepath, "incidence", "cases_by_repDS_
 rep_DS_pop= read.csv(file.path(box_hbhi_filepath, "incidence", "population_by_repDS.csv"))
 
 #final dataset 
-fin_df_repDS = left_join(ci_df_repDS, rep_DS_pop) %>%  
-  mutate(incidence = (sum_cases_archetype/40000) *1000,
-         incidence_low = (sum_l_ci/40000) * 1000, 
-         incidence_high = (sum_u_ci/40000) * 1000,
-         population = 1000) %>%  
-  rename(cases = sum_cases_archetype, seasonality = repDS)
-
-write.csv(fin_df_repDS, paste0(box_hbhi_filepath, '/', "incidence",  '/', Sys.Date(), "_archetype_incidence_NGA_RIA_v3.csv"))
-write.csv(fin_df_repDS, paste0(sim_input, '/',  "archetype_incidence_NGA_RIA_v5.csv"))
-###############################################################################
+# fin_df_repDS = left_join(ci_df_repDS, rep_DS_pop) %>%  
+#   mutate(incidence = (sum_cases_archetype/40000) *1000,
+#          incidence_low = (sum_l_ci/40000) * 1000, 
+#          incidence_high = (sum_u_ci/40000) * 1000,
+#          population = 1000) %>%  
+#   rename(cases = sum_cases_archetype, seasonality = repDS)
+# 
+# write.csv(fin_df_repDS, paste0(box_hbhi_filepath, '/', "incidence",  '/', Sys.Date(), "_archetype_incidence_NGA_RIA_v3.csv"))
+# write.csv(fin_df_repDS, paste0(sim_input, '/',  "archetype_incidence_NGA_RIA_v5.csv"))
+# ###############################################################################
 # Calculate incidence for data  and simulation and scale data 
 ###############################################################################
 
@@ -313,9 +313,9 @@ incidence_matched_df_split = split(incidence_matched_df_v2, incidence_matched_df
 plot_ <-function(data){
   pd <- position_dodge(0.25)
   p<-ggplot(data, aes(x =month, y =value, group = type, color=type)) +
-    geom_errorbar(aes(ymin = lower_limit, ymax = upper_limit), width =.5, position=pd)+
+    geom_errorbar(aes(ymin = lower_limit, ymax = upper_limit), width =.2, position=pd)+
     geom_line(position=pd) + 
-    geom_point(position=pd, size=3, shape=21, fill="white")+
+    geom_point(position=pd, size=0.8, shape=21, fill="white")+
     #scale_color_viridis(discrete = TRUE) +
     facet_wrap(~State, scales = "free")+
     scale_color_manual(labels = c("health facility data (rescaled)", "simulation (includes RDT + non-malarial fevers)"), values = c("darkorchid4", "deepskyblue2")) +
@@ -402,10 +402,10 @@ for(i in 1:length(incidence_matched_df_split)){
   p[[i]]<- plot_(incidence_matched_df_split[[i]])  
 }
 
-
+p[[1]]
 
 for (i in 1:length(p)) {
-  ggsave(shift_legend2(p[[i]]), file=paste0(print_path, '/', unique(p[[i]]$data$year),'_incidence_sim_data_comparison.pdf'), onefile=FALSE)
+  ggsave(shift_legend2(p[[i]]), file=paste0(print_path, '/', unique(p[[i]]$data$year),'_incidence_sim_data_comparison.pdf'), width=13, height=13, onefile=FALSE)
 }
 
 
