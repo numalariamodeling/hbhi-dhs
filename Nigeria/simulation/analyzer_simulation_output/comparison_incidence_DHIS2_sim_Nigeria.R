@@ -88,7 +88,126 @@ incidence_matched_state = left_join(incidence_matched, admin1DS, by=c('LGA')) %>
   )}
 
 
+<<<<<<< HEAD
 ###############################################################################
+=======
+
+###############################################################################
+# bootstrap to generate intervals on the sum 
+###############################################################################
+
+# #create list of dataframes
+# ci_df = left_join(incidence_matched, admin1DS, by=c('LGA'))
+# 
+# ci_df$row_num <- 1:nrow(ci_df) #create unique row numbers
+# 
+# zero_cases_df = ci_df %>%
+#   filter(State == "Yobe" & (date =="2014-06-01"|date =="2014-07-01"|date =="2014-10-01"))
+# 
+# `%notin%` <- Negate(`%in%`)
+# 
+# ci_df=subset(ci_df, row_num %notin% zero_cases_df$row_num)
+# 
+# ci_df = ci_df %>% dplyr::select(row_num, AllagesOutpatientMalariaC, State, date) %>%
+#   group_by(State, date) %>%  group_split()
+# 
+# 
+# 
+# 
+#sum function
+sumfun <- function(data, i){
+  d <- data[i, ]
+  return(sum(d))
+}
+
+
+#bootstrap functions
+boot_fun <- function(data, col){
+  bo <- boot(data[, col, drop = FALSE], statistic=sumfun, R=10000)
+  ci<- boot.ci(bo, conf=0.95, type="bca")
+
+  df <- data.frame(sum_est = bo$t0, sum_l_ci = ci$bca[4], sum_u_ci = ci$bca[5])
+}
+
+# 
+# 
+# 
+# #run bootstrap and bind dataframe of results
+# sum_ci_df <- map(ci_df, boot_fun)
+# fin_ci_df = do.call("rbind", sum_ci_df)
+# 
+# 
+# #get state and dates
+# ci_df_state = ci_df %>%  map(~dplyr::select(.x, c(State, date.x))) %>%  map(~distinct(.x))
+# ci_df_state = do.call("rbind", ci_df_state)
+# 
+# 
+# #cbind state, dates and intervals
+# sum_ci_all = cbind(ci_df_state, fin_ci_df)
+# 
+# write.csv(sum_ci_all, file.path(box_hbhi_filepath, "incidence", "cases_by_state_with_CIs.csv"))
+sum_ci_all= read.csv(file.path(box_hbhi_filepath, "incidence", "cases_by_state_with_CIs.csv")) %>% 
+  dplyr::select(-X) %>% rename(date = date.x) %>%  mutate(date = as.Date(date))
+
+
+###############################################################################
+# bootstrap to generate archetype intervals 
+###############################################################################
+#first create the dataset by aggregating to LGA and month 
+
+# cases_LGA = read.csv(file.path(box_hbhi_filepath, "incidence", "RIA_by_LGA_and_rep_DS.csv")) %>% 
+#   mutate(year = lubridate::year(date), month = month(date))
+# cases_sum = cases_LGA %>%  group_by(LGA, year, month) %>%  summarise(sum_cases = sum(AllagesOutpatientMalariaC)) 
+# cases_average = cases_sum %>% group_by(LGA, month) %>%  summarise(mean_cases = mean(sum_cases))
+# 
+# #create repDS file 
+# repDS = cases_LGA %>%  group_by(LGA, month) %>%  distinct(repDS)
+# 
+# #aggregate up repDS level 
+# cases_repDS = left_join(cases_average, repDS , by = c('month', 'LGA'))
+# fin_data =  cases_repDS  %>%  group_by(repDS, month) %>% summarise(sum_cases_archetype= sum(mean_cases))
+# 
+# 
+# # create aggregate population by archetype 
+# rep_DS_pop = cases_LGA %>%  distinct(LGA, repDS, geopode.pop) %>%  group_by(repDS) %>%  summarise(repDS_pop = sum(geopode.pop)) 
+# 
+# 
+# #create incidence data to check 
+# fin_arch_df = left_join(fin_data, rep_DS_pop) %>%  
+#   mutate(incidence = (sum_cases_archetype/repDS_pop) *1000) %>%  filter(repDS =='Akinyele')
+# 
+# plot(fin_arch_df$month, fin_arch_df$incidence, type = "b", pch = 19)
+# 
+# 
+# 
+# #create dataset list for bootstrapping 
+# 
+# boot_data =  cases_repDS  %>%  group_by(repDS, month) %>%  group_split()
+# 
+# col = c('mean_cases')
+# sum_ci_arch_df <- map2(boot_data,col, boot_fun)
+# fin_ci_df = do.call("rbind", sum_ci_arch_df)
+# 
+# 
+# # get archetype and dates
+# ci_df_repDS = cbind(fin_data, fin_ci_df)
+# write.csv(ci_df_repDS, file.path(box_hbhi_filepath, "incidence", "cases_by_repDS_with_CIs.csv"))
+#write.csv(rep_DS_pop, file.path(box_hbhi_filepath, "incidence", "population_by_repDS.csv"))
+ci_df_repDS= read.csv(file.path(box_hbhi_filepath, "incidence", "cases_by_repDS_with_CIs.csv"))
+rep_DS_pop= read.csv(file.path(box_hbhi_filepath, "incidence", "population_by_repDS.csv"))
+
+#final dataset 
+# fin_df_repDS = left_join(ci_df_repDS, rep_DS_pop) %>%  
+#   mutate(incidence = (sum_cases_archetype/40000) *1000,
+#          incidence_low = (sum_l_ci/40000) * 1000, 
+#          incidence_high = (sum_u_ci/40000) * 1000,
+#          population = 1000) %>%  
+#   rename(cases = sum_cases_archetype, seasonality = repDS)
+# 
+# write.csv(fin_df_repDS, paste0(box_hbhi_filepath, '/', "incidence",  '/', Sys.Date(), "_archetype_incidence_NGA_RIA_v3.csv"))
+# write.csv(fin_df_repDS, paste0(sim_input, '/',  "archetype_incidence_NGA_RIA_v5.csv"))
+# ###############################################################################
+>>>>>>> 0631069b984ea7e3f011d45de577d4869297335e
 # Calculate incidence for data  and simulation and scale data 
 ###############################################################################
 
@@ -139,8 +258,15 @@ incidence_matched_df_split = split(incidence_matched_df_v2, incidence_matched_df
 
 plot_ <-function(data){
   p<-ggplot(data, aes(x =month, y =value, group = type, color=type)) +
+<<<<<<< HEAD
     geom_line() + 
     scale_color_viridis(discrete = TRUE) +
+=======
+    geom_errorbar(aes(ymin = lower_limit, ymax = upper_limit), width =.2, position=pd)+
+    geom_line(position=pd) + 
+    geom_point(position=pd, size=0.8, shape=21, fill="white")+
+    #scale_color_viridis(discrete = TRUE) +
+>>>>>>> 0631069b984ea7e3f011d45de577d4869297335e
     facet_wrap(~State, scales = "free")+
     scale_color_manual(labels = c("health facility data (rescaled)", "simulation (includes RDT + non-malarial fevers)"), values = c("darkorchid4", "deepskyblue2")) +
     scale_x_continuous(labels = function(x) month.abb[x], breaks = c(1, 4, 7, 10))+
@@ -226,10 +352,10 @@ for(i in 1:length(incidence_matched_df_split)){
   p[[i]]<- plot_(incidence_matched_df_split[[i]])  
 }
 
-
+p[[1]]
 
 for (i in 1:length(p)) {
-  ggsave(shift_legend2(p[[i]]), file=paste0(print_path, '/', unique(p[[i]]$data$year),'_incidence_sim_data_comparison.pdf'), onefile=FALSE)
+  ggsave(shift_legend2(p[[i]]), file=paste0(print_path, '/', unique(p[[i]]$data$year),'_incidence_sim_data_comparison.pdf'), width=13, height=13, onefile=FALSE)
 }
 
 

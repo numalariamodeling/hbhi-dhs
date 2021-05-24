@@ -1,20 +1,50 @@
 #This script processes simulation output to generate percent change in outcomes with a 2015, 2020 and 2019 baseline at the state and national level in Nigeria
 # Created by Ifeoma Ozodiegwu 
 
+#change file paths as needed 
 
 
-# create baseline file 
+###############################################################################
+# create file paths 
+###############################################################################
+
+
+
 rm(list = ls())
 TeamDir <-"C:/Users/ido0493/Box/NU-malaria-team"
 ProjectDir<- file.path(TeamDir, "projects/hbhi_nigeria")
 WorkDir <- file.path(ProjectDir, "simulation_output")
+<<<<<<< HEAD
 ProcessDir <- file.path(WorkDir, "2020_to_2030_v3")
 ScriptDir <- file.path(TeamDir,"data/nigeria_dhs/data_analysis/src/DHS/1_variables_scripts")
 simInDir <- file.path(ProjectDir, "simulation_inputs/projection_csvs/projection_v3")
+=======
+ProcessDir <- file.path(WorkDir, "2020_to_2030_v4")
+ScriptDir <- file.path(TeamDir,"data/nigeria_dhs/data_analysis/src")
+simInDir <- file.path(ProjectDir, "simulation_inputs/projection_csvs/projection_v3")
+dir.create(file.path(ProcessDir, "percent_change_tables"), showWarnings = FALSE)
+PrintDir <- file.path(ProcessDir, "percent_change_tables")
+dir.create(file.path(PrintDir, "national"), showWarnings = FALSE)
+UpdatePrintDir <- file.path(ProcessDir, "percent_change_tables", "national")
+dir.create(file.path(PrintDir, "SMC_areas"), showWarnings = FALSE)
+SMC_areas <- file.path(PrintDir, "SMC_areas")
+source(file.path(ScriptDir,"/DHS/1_variables_scripts","generic_functions", "DHS_fun.R"))
+source(file.path(ScriptDir, "simulation/analyzer_simulation_output", "functions_percent_change.R")) #reads in the percentage change and sum functions
 
-source(file.path(ScriptDir, "generic_functions", "DHS_fun.R"))
 
+#baseline year options used in the paper - 2020, 2019 and 2015 
+year = 2015
 
+###############################################################################
+# national level % change 
+###############################################################################
+>>>>>>> 0631069b984ea7e3f011d45de577d4869297335e
+
+all_df  = list()
+
+names = c("mean", "0", "1", "2", "3", "4")
+
+<<<<<<< HEAD
 percent_change_fun <- function(df, boolean){
   
   if(boolean == TRUE){
@@ -46,19 +76,37 @@ percent_change_fun <- function(df, boolean){
 }                
 
 
+=======
+for (i in 1:length(names)){
+>>>>>>> 0631069b984ea7e3f011d45de577d4869297335e
 
+    scen_dat <- read.csv(file.path(ProcessDir, "scenario_adjustment_info.csv"))
 
-# state analysis 
-scen_dat <- read.csv(file.path(ProcessDir, "scenario_adjustment_info.csv"))
+  for (row in 1:nrow(scen_dat)){
+  files <- list.files(path = file.path(ProcessDir, scen_dat[, "ScenarioName"]), pattern = paste0("*annual_indicators_2020_2030_", names[i], ".csv"), full.names = TRUE)
+  df <- sapply(files, read_csv, simplify = F)
+  }
+    
+    
+    
 
+<<<<<<< HEAD
 for (row in 1:nrow(scen_dat)){
     files <- list.files(path = file.path(ProcessDir, scen_dat[, "ScenarioName"]), pattern = "*annual_indicators_", full.names = TRUE)
     files<- files[-(grep('_funder_|_2020_2030|each_LGA', files))]
     df <- sapply(files, read_csv, simplify = F)
 }
 
+=======
 
+#read in 2019 annual indicators
+>>>>>>> 0631069b984ea7e3f011d45de577d4869297335e
 
+df_2019 <- read_csv(file.path(WorkDir, "2010_to_2020_v10/NGA 2010-20 burnin_hs+itn+smc", "annual_indicators_2011_2020.csv")) %>% 
+  rename(death_rate_mean_all_ages = death_rate_mean,
+         death_rate_mean_U5 = U5_death_rate_mean)
+
+<<<<<<< HEAD
 df <- plyr::ldply(df, rbind)%>%  dplyr::select(.id,year, PfPR_all_ages, PfPR_U5,  
                                                incidence_all_ages, incidence_U5, death_rate_1_all_ages,death_rate_2_all_ages,death_rate_1_U5, death_rate_2_U5)
 
@@ -70,17 +118,49 @@ df_all<- df %>% mutate(State =  str_split(.id, "indicators_", simplify = TRUE)[,
  
 
 
+=======
+df[['C:/Users/ido0493/Box/NU-malaria-team/projects/hbhi_nigeria/simulation_output/2020_to_2030_v3/NGA projection scenario 0/annual_indicators_2020_2030.csv']] <- df_2019
+
+>>>>>>> 0631069b984ea7e3f011d45de577d4869297335e
 
 
-fin_df <- percent_change_fun(df_all, TRUE)  
+ fin_df <- plyr::ldply(df, rbind)%>%  dplyr::select(.id,year, PfPR_all_ages, PfPR_U5,  incidence_all_ages, incidence_U5, death_rate_mean_all_ages, 
+                                               death_rate_mean_U5) %>% 
+  mutate(scenario = str_split(.id, "/", simplify = T)[, 10])
+
+                          
+#% change 
+    if (year == 2020) {
+      df_base  <- percent_change_fun_20(fin_df, FALSE)
+      df_base$run_number <- paste0('run number', " ", names[i]) 
+      write_csv(df_base, paste0(UpdatePrintDir, "/",  Sys.Date(), "_percent_change_indicators_", as.character(year), "_base_", names[i],".csv"))
+    
+    } else if (year == 2019) {
+       df_base  <- percent_change_fun_19(fin_df, FALSE)
+       df_base$run_number <- paste0('run number', " ", names[i]) 
+       write_csv(df_base, paste0(UpdatePrintDir, "/",  Sys.Date(), "_percent_change_indicators_", as.character(year), "_base_", names[i],".csv"))
+     
+    } else {
+      df_base  <- percent_change_fun_15(fin_df, FALSE)
+      df_base$run_number <- paste0('run number', " ", names[i]) 
+      write_csv(df_base, paste0(UpdatePrintDir, "/",  Sys.Date(), "_percent_change_indicators_", as.character(year), "_base_", names[i],".csv"))
+    }
 
 
+all_df[[i]] <- df_base
+
+<<<<<<< HEAD
 write_csv(fin_df, paste0(ProcessDir, "/", "percent_change_tables", "/", Sys.Date(), "_percent_change_States_indicators_2020_base.csv"))
+=======
+}
+>>>>>>> 0631069b984ea7e3f011d45de577d4869297335e
 
 
 
-#create new variables to detects the column with the greatest reduction in indicators or the best scenario
+if (year == 2020){
+all_df2 = all_df %>%  map(~filter(., (year == 2020| year == 2025| year == 2030) & run_number != "run number mean"))
 
+<<<<<<< HEAD
 find_df2 <- fin_df%>%  filter(year ==2020 | year == 2030 ) %>% 
   group_by(State) %>% 
   mutate(pfpr_min = ifelse(PfPR_percent_change == min(PfPR_percent_change), 1, 0),
@@ -95,41 +175,68 @@ find_df2 <- fin_df%>%  filter(year ==2020 | year == 2030 ) %>%
   
 
 write_csv(find_df2, paste0(ProcessDir, "/", "percent_change_tables", "/", Sys.Date(), "percent_change_States_indicators_best_scenario_2020_and_2030.csv"))
+=======
+df_com = plyr::ldply(all_df2, rbind) %>%  group_by(scenario, year) %>% summarise_at(vars(ends_with('_change')), list(min = min, max = max))
+
+mean_df2 = all_df %>%  map(~filter(., (year == 2020| year == 2025| year == 2030) & run_number == "run number mean")) %>%  plyr::ldply(rbind)
+>>>>>>> 0631069b984ea7e3f011d45de577d4869297335e
 
 
+} else if (year == 2019){
+  all_df2 = all_df %>%  map(~filter(., (year==2019|year == 2020| year == 2025| year == 2030) & run_number != "run number mean"))
+  
+  df_com = plyr::ldply(all_df2, rbind) %>%  group_by(scenario, year) %>% summarise_at(vars(ends_with('_change')), list(min = min, max = max))
+  
+  mean_df2 = all_df %>%  map(~filter(., (year==2019|year == 2020| year == 2025| year == 2030) & run_number == "run number mean")) %>%  plyr::ldply(rbind)
 
-# national level % change 
 
-scen_dat <- read.csv(file.path(ProcessDir, "scenario_adjustment_info.csv"))
+} else {
+  all_df2 = all_df %>%  map(~filter(., (year ==2015 |year == 2020| year == 2025| year == 2030) & run_number != "run number mean"))
+  
+  df_com = plyr::ldply(all_df2, rbind) %>%  group_by(scenario, year) %>% summarise_at(vars(ends_with('_change')), list(min = min, max = max))
+  
+  mean_df2 = all_df %>%  map(~filter(., (year==2015|year == 2020| year == 2025| year == 2030) & run_number == "run number mean")) %>%  plyr::ldply(rbind)
 
-for (row in 1:nrow(scen_dat)){
-  files <- list.files(path = file.path(ProcessDir, scen_dat[, "ScenarioName"]), pattern = "*annual_indicators_2020_2030.csv", full.names = TRUE)
-  df <- sapply(files, read_csv, simplify = F)
 }
 
-#read in 2019 annual indicators
+mean_df2 = mean_df2 %>%  dplyr::select(scenario, year, ends_with('_change'))
 
+<<<<<<< HEAD
 df_2019 <- read_csv(file.path(WorkDir, "2010_to_2020_v10/NGA 2010-20 burnin_hs+itn+smc", "annual_indicators_2011_2020.csv")) %>% 
   rename(death_rate_mean_all_ages = death_rate_mean,
          death_rate_mean_U5 = U5_death_rate_mean)
 
 df[['C:/Users/ido0493/Box/NU-malaria-team/projects/hbhi_nigeria/simulation_output/2020_to_2030_v3/NGA projection scenario 0/annual_indicators_2020_2030.csv']] <- df_2019
+=======
+fin_df = left_join(df_com, mean_df2)%>% 
+  dplyr::select(scenario, year, sort(names(.)))
+write_csv(fin_df, paste0(UpdatePrintDir, "/",  Sys.Date(), "_", as.character(year), "_base_2020_2025_2030_with_intervals", ".csv"))
 
+###############################################################################
+# SMC States
+###############################################################################
+all_df  = list()
+>>>>>>> 0631069b984ea7e3f011d45de577d4869297335e
 
+names = c("mean", "0", "1", "2", "3", "4")
 
+for (i in 1:length(names)){
+  scen_dat <- read.csv(file.path(ProcessDir, "scenario_adjustment_info.csv")) %>%  filter(Scenario_no %in% c(1, 2, 6, 7))
+
+<<<<<<< HEAD
 df <- plyr::ldply(df, rbind)%>%  dplyr::select(.id,year, PfPR_all_ages, PfPR_U5,  incidence_all_ages, incidence_U5, death_rate_mean_all_ages, 
                                                death_rate_mean_U5) %>% 
   mutate(scenario = str_split(.id, "/", simplify = T)[, 10])
+=======
+      for (row in 1:nrow(scen_dat)){
+        files <- list.files(path = file.path(ProcessDir, scen_dat[, "ScenarioName"]), pattern = paste0("*annual_indicators_each_LGA_", names[i], ".csv"), full.names = TRUE)
+        df <- sapply(files, read_csv, simplify = F)
+      }
+    
+>>>>>>> 0631069b984ea7e3f011d45de577d4869297335e
 
-# yearly % change 
-# df_all<- df %>% mutate(scenario = str_split(.id, "/", simplify = T)[, 10]) %>%  group_by(scenario) %>%  
-#   mutate(PfPR_trend = PfPR - lag(PfPR, default = PfPR[1]),
-#          U5_PfPR_trend = U5_PfPR - lag(U5_PfPR,default = U5_PfPR[1]),
-#          incidence_trend = incidence - lag(incidence, default = incidence[1]),
-#          U5_incidence_trend = U5_incidence - lag(U5_incidence, default = U5_incidence[1]),
-#          death_rate_trend = death_rate_mean - lag(death_rate_mean, default = death_rate_mean[1]),
-#          U5_death_rate_trend = U5_death_rate_mean - lag(U5_death_rate_mean, default = U5_death_rate_mean[1]))
 
+<<<<<<< HEAD
 # write_csv(df_all, file.path(WorkDir, "/2020_to_2030_v2/yearly_percent_change_indicators.csv"))
 
 
@@ -151,27 +258,37 @@ fin_df_2015  <- percent_change_fun(df, FALSE)
 # write_csv(fin_df, file.path(WorkDir, "/2020_to_2030_v3/percent_change_indicators_2015_base.csv"))
 
 write_csv(fin_df_2015, paste0(ProcessDir, "/", "percent_change_tables", "/",  Sys.Date(), "_percent_change_indicators_2015_base.csv"))
+=======
+
+
+files <- list.files(path = simInDir, pattern = "*smc_PAAR_2020_2030.csv", full.names = T)
+SMC_df <- sapply(files, read_csv, simplify = F)
 
 
 
-
-# SMC states 
-
-
-scen_dat <- read.csv(file.path(ProcessDir, "scenario_adjustment_info.csv")) %>%  filter(Scenario_no %in% c(1, 2, 6, 7))
-
-for (row in 1:nrow(scen_dat)){
-  files <- list.files(path = file.path(ProcessDir, scen_dat[, "ScenarioName"]), pattern = "*annual_indicators_each_LGA.csv", full.names = TRUE)
-  df <- sapply(files, read_csv, simplify = F)
-}
+SMC_LGA <- map(SMC_df, ~ .x %>% 
+      distinct(LGA)) 
+>>>>>>> 0631069b984ea7e3f011d45de577d4869297335e
 
 
-for (i in 1:3){
-  files <- list.files(path = simInDir, pattern = "*PAAR_2020_2030.csv|smc_bau_2020_2030.csv|smc_increase80_2020_2030.csv", full.names = T)
-  SMC_df <- sapply(files, read_csv, simplify = F)
-}
+# we use the sum custom function to compute indicators 
+df_ls <- map2(df, SMC_LGA, sum_fun)
+
+df <- plyr::ldply(df_ls, rbind)
 
 
+
+df_all<- df %>% mutate(scenario = str_split(.id, "/", simplify = T)[, 10]) 
+
+
+fin_df <- percent_change_fun_20(df_all, FALSE) 
+fin_df$run_number <- paste0('run number', " ", names[i]) 
+
+write_csv(fin_df, paste0(SMC_areas,"/",  Sys.Date(), "_percent_change_indicators_2020_base_SMC_states", names[i], ".csv"))
+
+all_df[[i]] <- fin_df 
+
+<<<<<<< HEAD
 SMC_LGA <- map(SMC_df, ~ .x %>% 
       distinct(LGA))
 
@@ -193,18 +310,32 @@ sum_fun <- function(df1, df2){
               death_rate_mean_all_ages = (death_rate_1_all_ages+death_rate_2_all_ages)/2,
               death_rate_mean_U5 = (death_rate_1_U5+death_rate_2_U5)/2) %>% 
     dplyr::select(-c(death_rate_1_all_ages,death_rate_2_all_ages,death_rate_1_U5, death_rate_2_U5))
+=======
+>>>>>>> 0631069b984ea7e3f011d45de577d4869297335e
 }
 
 
-df_ls <- map2(df, SMC_LGA, sum_fun)
+all_df2 = all_df %>%  map(~filter(., (year == 2020| year == 2025| year == 2030) & run_number != "run number mean"))
 
-df <- plyr::ldply(df_ls, rbind)
+df_com = plyr::ldply(all_df2, rbind) %>%  group_by(scenario, year) %>% summarise_at(vars(ends_with('_change')), list(min = min, max = max))
 
+mean_df2 = all_df %>%  map(~filter(., (year == 2020| year == 2025| year == 2030) & run_number == "run number mean")) %>%  plyr::ldply(rbind)
+
+mean_df2 = mean_df2 %>%  dplyr::select(scenario, year, ends_with('_change'))
+
+<<<<<<< HEAD
 
 
 df_all<- df %>% mutate(scenario = str_split(.id, "/", simplify = T)[, 10]) 
+=======
+fin_df = left_join(df_com, mean_df2)%>% 
+  dplyr::select(scenario, year, sort(names(.)))
+>>>>>>> 0631069b984ea7e3f011d45de577d4869297335e
+
+write_csv(fin_df, paste0(SMC_areas, "/",  Sys.Date(), "_2020_base_2020_2025_2030_with_intervals_SMC_states", ".csv"))
 
 
-fin_df <- percent_change_fun(df_all, FALSE) 
-
+<<<<<<< HEAD
 write_csv(fin_df, paste0(ProcessDir, "/", "percent_change_tables", "/",  Sys.Date(), "percent_change_indicators_2020_base_SMC_states.csv"))
+=======
+>>>>>>> 0631069b984ea7e3f011d45de577d4869297335e
