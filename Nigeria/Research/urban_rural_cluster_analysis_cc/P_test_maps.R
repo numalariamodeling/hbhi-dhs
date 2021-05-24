@@ -88,15 +88,13 @@ comineddataset <- clu_variales_10_18
 stateshp <- readOGR(file.path(DataDir,"gadm36_NGA_shp"), layer ="gadm36_NGA_2", use_iconv=TRUE, encoding= "UTF-8")
 state_sf <- st_as_sf(stateshp)
 
+#All known high SES area using LGAs
+
+#state_sf <- state_sf %>% filter(NAME_2 == "Eti-Osa" | NAME_2 == "AbujaMun"| NAME_2 == "Enugu North"| NAME_2 == "Port Harcourt")
+
+#Relace lga name with LGA of interest
 state_sf <- state_sf %>% filter(NAME_2 == "Eti-Osa") 
-
-
-state_sf <- state_sf %>% mutate(NAME_1 = case_when(NAME_1 == "Federal Capital Territory" ~ "Fct Abuja",
-                                                   NAME_1 == "Nassarawa" ~ "Nasarawa",
-                                                   TRUE ~ as.character(NAME_1)
-))
-
-r_map_df <- left_join(state_sf, r_random_effects_, by =c("NAME_1" = "ID"))
+ 
 
 #setting cluster points 
 cluster_points <- st_as_sf(ruraldataset)# %>% 
