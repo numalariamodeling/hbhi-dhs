@@ -11,8 +11,11 @@ x <- c("tidyverse", "survey", "haven", "ggplot2", "purrr", "summarytools", "stri
 lapply(x, library, character.only = TRUE) #applying the library function to packages
 
 smc <- read.csv("bin/smc_table/smc_df2_fin_by_round.csv", colClasses=c("month" = "character")) %>% mutate(adm1 = trimws(adm1), month = as.Date(month, format="%d/%m/%Y"))
- 
-smc_hag <- read.csv("bin/smc_table/SMC_overall_cov_Fhag_2018_2019.csv") %>% mutate(adm1 = trimws(adm1))
+
+smc$coverage = (smc$coverage_high_access * 0.5) + (smc$coverage_low_access*0.5)
+
+smc_hag <- read.csv("bin/smc_table/SMC_overall_cov_Fhag_2018_2019.csv") %>% mutate(adm1 = trimws(adm1)) %>% 
+  rename(coverage_updated = coverage)
 summary(smc_hag$Fhag)
 
 smc_2 <- left_join(smc, smc_hag, by = c("adm1", "round", "year"))
@@ -21,12 +24,14 @@ file_split <- split(smc_2, smc$year)
 
 # Fhag is high access fraction
 file_split$`2018` <- file_split$`2018` %>% mutate(coverage_high_access = ifelse(grepl('Jiga|Kat|Sok|Zam',adm1),1, coverage_high_access)) %>% 
-                  mutate(coverage_low_access = (coverage - Fhag)/(1 - Fhag))
+                  mutate(coverage_low_access = (coverage_updated - Fhag)/(1 - Fhag),
+                         coverage = ifelse(grepl('Jiga|Kat|Sok|Zam',adm1), coverage_updated, coverage))
 
 
 
 file_split$`2019` <- file_split$`2019` %>% mutate(coverage_high_access = ifelse(grepl('Jiga|Kat|Sok|Yob|Zam',adm1),1, coverage_high_access)) %>% 
-  mutate(coverage_low_access = (coverage - Fhag)/(1 - Fhag))
+  mutate(coverage_low_access = (coverage_updated - Fhag)/(1 - Fhag),
+         coverage = ifelse(grepl('Jiga|Kat|Sok|Yob|Zam',adm1), coverage_updated, coverage))
 
 df <- dplyr::bind_rows(file_split)
 
@@ -40,10 +45,10 @@ df$start_sim <- as.Date("01/01/2010", format="%d/%m/%Y")
 
 # making dataset for sim run 
 
-df_2 <- df %>% filter(year == '2019') %>% mutate(month_new = as.numeric(substr(month, 6, 7)), 
-                                                 coverage_low_access = ifelse(is.na(coverage_low_access), 0.2, coverage_low_access)) %>% 
-  dplyr::select(-c(month, simday, month, coverage, Fhag, start_sim))
+# df_2 <- df  %>% mutate(month_new = as.numeric(substr(month, 6, 7)), 
+#                                                  coverage_low_access = ifelse(is.na(coverage_low_access), 0.2, coverage_low_access)) %>% 
+#   dplyr::select(-c(month, simday, month, Fhag, start_sim)) #coverage
+# 
+# summary(df_2$month_new)
 
-summary(df_2$month_new)
-
-write.csv(df_2, "bin/projection/s1/smc_LGA.csv")
+write.csv(df, "bin/projection/s1/smc_LGA_v3.csv")

@@ -52,7 +52,7 @@ sys.source(file = file.path("C:/Users/ido0493/Box/NU-malaria-team/data/nigeria_d
 
 options(survey.lonely.psu="adjust") # this option allows admin units with only one cluster to be analyzed
 
-dhs <-read.files( ".*NGPR7AFL.*\\.DTA", DataDir, read_dta) %>% map(~filter(.x, hv042 == 1 & hv103 == 1 & hc1 %in% c(6:59) & hml32 %in% c(0, 1,6)))
+dhs <-read.files( ".*NGPR7AFL.*\\.DTA", DataDir, read_dta) 
 dhs_ir <- read.files( ".*NGIR7AFL.*\\.DTA", DataDir, read_dta) %>%  map(~dplyr::select(.x, v104, v160, v135))
 
 
@@ -66,8 +66,42 @@ look_for(dhs2 [[1]], "visitor")
 table(dhs2[[1]]$v135) # frequency table for smear test 
 
 #subsetting for microscopy (denominator -hh selected for hemoglobin, child slept there last night and have result for test)
+dhs <- dhs[-c(1, 2, 3, 5)]
+pfpr_df <- map(dhs, ~filter(.x, hv042 == 1 & hv103 == 1 & hc1 %in% c(6:59) & hml32 %in% c(0, 1,6)))
 
-pfpr_df <- dhs[[1]] %>% filter(hv042 == 1 & hv103 == 1 & hc1 %in% c(6:59) & hml32 %in% c(0, 1,6))
+number of children per cluster 
+clusters_2010 <- pfpr_df[[1]] %>%  group_by(hv001) %>% summarise(num_child = n()) 
+
+hist_10= ggplot(clusters_2010, aes(x=num_child))+
+  geom_histogram(color="darkgreen", fill ='lightgreen')+
+  theme_minimal()+
+  labs(x = "Number of Children per cluster (DHS, 2010)")
+
+
+clusters_2015 <- pfpr_df[[2]] %>%  group_by(hv001) %>% summarise(num_child = n()) 
+
+hist_15= ggplot(clusters_2015, aes(x=num_child))+
+  geom_histogram(color="darkblue", fill ='lightblue')+
+  theme_minimal()+
+  labs(x = "Number of Children per cluster (DHS, 2015)")
+
+
+
+clusters_2018 <- pfpr_df[[3]] %>%  group_by(hv001) %>% summarise(num_child = n()) 
+
+hist_18= ggplot(clusters_2018, aes(x=num_child))+
+  geom_histogram(binwidth =1, color="darkorange", fill ='orange')+
+  theme_minimal()+
+  labs(x = "Number of Children per cluster (DHS, 2018)")
+sd(clusters_2010$num_child)
+
+ggarrange(hist_10 + annotate("text", x = 50, y = 22, label = "Mean (SD) = 21.37 (9.99)"), 
+          hist_15 + annotate("text", x = 37, y = 23, label = "Mean (SD) = 17.59 (9.03)"), 
+          hist_18 + annotate("text", x = 14, y = 115, label = "Mean (SD) = 5.998 (2.94)"))
+
+
+
+#pfpr_df <- dhs[[1]] %>% filter(hv042 == 1 & hv103 == 1 & hc1 %in% c(6:59) & hml32 %in% c(0, 1,6))
 
 
 

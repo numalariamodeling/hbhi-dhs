@@ -19,11 +19,12 @@ DataDir <-file.path(NGDir, "data")
 ResultDir <-file.path(NGDir, "results")
 BinDir <- file.path(NGDir, "bin")
 SrcDir <- file.path(NGDir, "src", "DHS")
+ResDir <- file.path(NGDir, "src", "Research", "urban_rural_cluster_analysis_cc")
 VarDir <- file.path(SrcDir, "1_variables_scripts")
 ProjectDir <- file.path(NuDir, "projects", "hbhi_nigeria")
 SimDir <- file.path(ProjectDir, 'simulation_input')
-
-
+PubDir <- file.path(ProjectDir, 'project_notes/publication/Urban-rural determinants of malaria infection in Nigeria')
+PrintDir <- file.path(PubDir, 'Illustrations')
 
 
 
@@ -51,35 +52,70 @@ source(file.path(VarDir, "generic_functions", "DHS_fun.R"))
 
 # reads in functions so we can alias it using funenv$
 funEnv <- new.env()
-sys.source(file = file.path("C:/Users/ido0493/Box/NU-malaria-team/data/nigeria_dhs/data_analysis/src/Research/urban_rural_cluster_analysis_cc", "functions", "Nigeria functions.R"), 
+sys.source(file = file.path(ResDir, "functions", "Nigeria functions.R"), 
            envir = funEnv, toplevel.env = funEnv)
 
 
 options(survey.lonely.psu="adjust") # this option allows admin units with only one cluster to be analyzed
 
-dhs <-read.files( ".*NGPR7AFL.*\\.DTA", DataDir, read_dta)
-dhs_ir <- read.files( ".*NGIR7AFL.*\\.DTA", DataDir, read_dta)
-
-# dhs <- list.files(path = datapath, pattern = ".*NGPR7AFL.*//.DTA", recursive = F, full.names = TRUE)
-# dhs <- sapply(dhs, read_dta, simplify = F)
-
-dhs2 <- read.files(".*NGKR7AFL.*\\.DTA", DataDir, read_dta)
-#dhs2 <- sapply(dhs2, read_dta, simplify = F)
-# clean and select pfpr data 
 
 
+dhs <-read.files(".*NGPR.*\\.DTA", DataDir, read_dta)
+dhs <- dhs[-c(1, 2, 3, 5)]
+# dhs_ir <- read.files( ".*NGIR7AFL.*\\.DTA", DataDir, read_dta)
+# 
+# # dhs <- list.files(path = datapath, pattern = ".*NGPR7AFL.*//.DTA", recursive = F, full.names = TRUE)
+# # dhs <- sapply(dhs, read_dta, simplify = F)
+# 
+# dhs2 <- read.files(".*NGKR7AFL.*\\.DTA", DataDir, read_dta)
+# #dhs2 <- sapply(dhs2, read_dta, simplify = F)
+# # clean and select pfpr data 
+# 
+# 
+# 
+# look_for(dhs [[1]], "altitude")
 
-look_for(dhs [[1]], "altitude")
 
 
-
-table(dhs[[1]]$hml32) # frequency table for smear test 
+#table(dhs[[1]]$hml32) # frequency table for smear test 
 
 #subsetting for microscopy (denominator -hh selected for hemoglobin, child slept there last night and have result for test)
 
-pfpr_df <- dhs[[1]] %>% filter(hv042 == 1 & hv103 == 1 & hc1 %in% c(6:59) & hml32 %in% c(0, 1,6))
+pfpr_df <- map(dhs, ~filter(.x, hv042 == 1 & hv103 == 1 & hc1 %in% c(6:59) & hml32 %in% c(0, 1,6),hv025 == 1))
+
+# number of children per cluster 
+clusters_2010 <- pfpr_df[[1]] %>%  group_by(hv001) %>% summarise(num_child = n()) 
+
+hist_10= ggplot(clusters_2010, aes(x=num_child))+
+  geom_histogram(color="darkgreen", fill ='lightgreen')+
+  theme_minimal()+
+  labs(x = "Number of Children per cluster (DHS, 2010)")
 
 
+clusters_2015 <- pfpr_df[[2]] %>%  group_by(hv001) %>% summarise(num_child = n()) 
+
+hist_15= ggplot(clusters_2015, aes(x=num_child))+
+  geom_histogram(color="darkblue", fill ='lightblue')+
+  theme_minimal()+
+  labs(x = "Number of Children per cluster (DHS, 2015)")
+
+
+
+clusters_2018 <- pfpr_df[[3]] %>%  group_by(hv001) %>% summarise(num_child = n()) 
+
+hist_18= ggplot(clusters_2018, aes(x=num_child))+
+  geom_histogram(binwidth = 1, color="darkorange", fill ='orange')+
+  theme_minimal()+
+  labs(x = "Number of Children per cluster (DHS, 2018)")
+max(clusters_2010$num_child)
+
+cluster_plot <-ggarrange(hist_10 + annotate("text", x = 40, y = 10, label = "Mean (SD) = 17.28 (9.80)"), 
+          hist_15 + annotate("text", x = 30, y = 15, label = "Mean (SD) = 14.54 (7.28)"), 
+          hist_18 + annotate("text", x = 12, y = 60, label = "Mean (SD) = 6.11 (2.99)"))
+
+
+
+ggsave(paste0(PrintDir, '/', Sys.Date(),  '_number_children_cluster_DHS_10_15_18.pdf'), cluster_plot)
 
 
 

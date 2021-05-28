@@ -1,10 +1,10 @@
 rm(list=ls())
 
 
-#setwd("C:/Users/ido0493/Box/NU-malaria-team/data/nigeria_dhs/data_analysis")
+setwd("C:/Users/ido0493/Box/NU-malaria-team/data/nigeria_dhs/data_analysis")
 
 
-setwd("~/Box/NU-malaria-team/data/nigeria_dhs/data_analysis")
+#setwd("~/Box/NU-malaria-team/data/nigeria_dhs/data_analysis")
 
 #important to download the github version of tidyverse.Uncomment the script below to run
 # install.packages("devtools") #download devtools if is not available in your packages 
@@ -80,13 +80,16 @@ LGAshp_sf_2 <- left_join(LGAshp_sf, LGA_names, by=c("LGA" = "LGA_shape"))
 
 # SMC 
 
-smc <- read.csv('results/archetype_sim_input/Intervention_files_LGA/smc_cc_2010_2020.csv') 
+smc <- read.csv('bin/projection/s1/smc_LGA_v3.csv') 
 head(smc)
 summary(smc$year)
 
-smc_2 <- smc %>% group_by(LGA, year) %>%  summarise(coverage_high_access = mean(coverage_high_access),
-                                                    coverage_low_access = mean(coverage_low_access)) %>% 
-  ungroup(LGA) %>%  mutate(LGA_nga_pop = trimws(LGA)) %>%  dplyr::select(-c(LGA))
+# smc_2 <- smc %>% group_by(LGA, year) %>%  summarise(coverage_high_access = mean(coverage_high_access),
+#                                                     coverage_low_access = mean(coverage_low_access)) %>% 
+#   ungroup(LGA) %>%  mutate(LGA_nga_pop = trimws(LGA)) %>%  dplyr::select(-c(LGA))
+
+smc_2 <- smc %>% group_by(LGA, year) %>%  summarise(coverage =mean(coverage)) %>% 
+  ungroup(LGA) %>%  mutate(LGA_name_var= trimws(LGA)) %>%  dplyr::select(-c(LGA))
 
 smc_split <- split(smc_2, smc_2$year)
 
@@ -116,7 +119,16 @@ LGAshp <- list(LGAshp_sf_2, LGAshp_sf_2, LGAshp_sf_2, LGAshp_sf_2, LGAshp_sf_2, 
 
 join<- map2(LGAshp, smc_split, left_join)
 
-summary(join[[3]]$year)
+# a =smc_split$`2013`[smc_split$`2013`$LGA_name_var %in% LGAshp_sf_2$LGA_name_var, ]
+# 
+# '%ni%' <- Negate('%in%')
+# 
+# b =smc_split$`2013`[smc_split$`2013`$LGA_name_var %ni% LGAshp_sf_2$LGA_name_var, ]
+
+
+
+
+# summary(join[[3]]$year)
 
 #map
 map_fun <- function(shpfile, map_val) {
@@ -129,13 +141,14 @@ map_fun <- function(shpfile, map_val) {
             aes.palette = list(seq="RdYlBu")) 
 }
 
-map_val <- list("coverage_low_access")
+map_val <- list("coverage")
 maps <- map2(join, map_val, map_fun)
 arrange_maps <- do.call(tmap_arrange, maps)
+arrange_maps
 
-SMC_maps <- tmap_arrange(twenty_13_low, twenty_13_high, twenty_14_low, twenty_14_high,twenty_15_low, 
-                         twenty_15_high,twenty_16_low, twenty_16_high, twenty_17_low, twenty_17_high,
-                         twenty_18_low, twenty_18_high, twenty_19_low, twenty_19_high) 
+# SMC_maps <- tmap_arrange(twenty_13_low, twenty_13_high, twenty_14_low, twenty_14_high,twenty_15_low, 
+#                          twenty_15_high,twenty_16_low, twenty_16_high, twenty_17_low, twenty_17_high,
+#                          twenty_18_low, twenty_18_high, twenty_19_low, twenty_19_high) 
                          
                          # (twenty_15_low, 
                          # twenty_15_high,twenty_16_low,twenty_16_high)
