@@ -19,12 +19,15 @@ print_path <- file.path(box_hbhi_filepath, "project_notes/publication/Hbhi model
 
 # read in data for all scenarios
 
+<<<<<<< HEAD
+=======
 all_df  = list()
 
 names = c("mean", "0", "1", "2", "3", "4")
 
 
 for (i in 1:length(names)){
+>>>>>>> 0631069b984ea7e3f011d45de577d4869297335e
 scen_dat <- read.csv(file.path(ProcessDir, "scenario_adjustment_info.csv"))
 
   for (row in 1:nrow(scen_dat)){
@@ -59,6 +62,34 @@ all_df[[i]] <- df
 df_com = plyr::ldply(all_df, rbind) %>% filter(run_number != "run number mean")  %>% 
 group_by(scenario, year) %>%  summarise_if(is.numeric, list(min = min, max = max), na.rm = TRUE)
 
+<<<<<<< HEAD
+# 
+# GTS_incidence_all_ages_2020 <- df[df$year == "2015", "incidence_all_ages"] * 0.6
+# 
+# GTS_incidence_all_ages_2025 <- df[df$year == "2015", "incidence_all_ages"] * 0.25
+# 
+# GTS_incidence_all_ages_2030 <- df[df$year == "2015", "incidence_all_ages"] * 0.10
+# 
+# 
+# GTS_deaths_all_ages_2020 <- df[df$year == "2015", "death_rate_mean_all_ages"] * 0.6
+# 
+# GTS_deaths_all_ages_2025 <- df[df$year == "2015", "death_rate_mean_all_ages"] * 0.25
+# 
+# GTS_deaths_all_ages_2030 <- df[df$year == "2015", "death_rate_mean_all_ages"] * 0.10
+# 
+# 
+# 
+# GTS_df <- data.frame(.id = "GTS", year=c("2020", "2025", "2030"),  PfPR_all_ages = NA , PfPR_U5= NA,
+#                      incidence_all_ages = c(GTS_incidence_all_ages_2020, GTS_incidence_all_ages_2025, GTS_incidence_all_ages_2030),
+#                      incidence_U5=NA, death_rate_mean_all_ages = c(GTS_deaths_all_ages_2020, GTS_deaths_all_ages_2025, GTS_deaths_all_ages_2030),
+#                      death_rate_mean_U5 = NA, scenario = "GTS")
+# 
+# df <- rbind(df, GTS_df)
+
+line_plot <- function(y, ylab) {
+  p<-ggplot(df, aes(x = year, y = y, group = scenario, color = scenario)) + 
+  geom_line()+
+=======
 
 df_mean = plyr::ldply(all_df, rbind) %>% filter(run_number == "run number mean")  %>% 
   dplyr::select(-c(.id, run_number))
@@ -87,8 +118,14 @@ line_plot_gts <- function(y, gts, ylab, ymin, ymax, title) {
   geom_line(aes(y = y), size =0.3)+
     geom_ribbon(aes(ymin =ymin, ymax =ymax, fill =NA), linetype=2, alpha=0.1, size =0.3)+
     geom_point(aes(y =gts), color ='black', size =2)+
+<<<<<<< HEAD
     scale_color_manual(values = c("#5a5757", '#913058', "#F6851F", "#00A08A", "#D61B5A", "#5393C3", "#98B548", "#8971B3"))+
     scale_fill_manual(values = c( "#5a5757", '#913058', "#F6851F", "#00A08A", "#D61B5A", "#5393C3", "#98B548", "#8971B3"))+
+=======
+    scale_color_manual(values = c( "#969696", '#913058', "#F6851F", "#00A08A", "#D61B5A", "#5393C3", "#98B548", "#8971B3"))+
+    scale_fill_manual(values = c( "#969696", '#913058', "#F6851F", "#00A08A", "#D61B5A", "#5393C3", "#98B548", "#8971B3"))+
+>>>>>>> 0631069b984ea7e3f011d45de577d4869297335e
+>>>>>>> 08739fa18a426c8bd497f5636b7eff26ac8e3752
   theme_minimal()+
     theme(legend.direction = "vertical", legend.title = element_blank(),
           plot.title=element_text(size=, color = "black", face = "bold", hjust=0.5),
@@ -135,6 +172,19 @@ u5_title <- expression(paste(atop(textstyle(bold("children under the age of five
                                atop(textstyle("U5 PfPR by microscopy,"),
                                     textstyle("annual average")))))
 
+<<<<<<< HEAD
+pfpr <- line_plot(df$PfPR_all_ages, "all age PfPR")
+
+u5_pfpr <- line_plot(df$PfPR_U5, "U5 PfPR")
+
+incidence <- line_plot(df$incidence_all_ages, "all age incidence")
+
+u5_incidence <- line_plot(df$incidence_U5, "U5 incidence")
+
+death <- line_plot(df$death_rate_mean_all_ages, "all age death rate")
+
+death_U5 <- line_plot(df$death_rate_mean_U5, "U5 death rate")
+=======
 #plots 
 pfpr <- line_plot(df$PfPR_all_ages, all_ages_title, df$PfPR_all_ages_min, df$PfPR_all_ages_max, 'Parasite Prevalence')
 
@@ -154,6 +204,7 @@ legend <- get_legend(
     theme(legend.position = "bottom", legend.background = element_blank(), legend.box.background = element_rect(colour = "black"))
 )
 
+>>>>>>> 0631069b984ea7e3f011d45de577d4869297335e
 
 #top_row <- plot_grid(pfpr+theme(legend.position="none"), incidence+ theme(legend.position="none"), death+theme(legend.position="none"), labels = c('A', 'B', 'C'), nrow =1)
 
@@ -170,6 +221,15 @@ indicator_plot <-  plot_grid(first_col, second_col, third_col, nrow =1)
 final_plot <- plot_grid(indicator_plot, legend, nrow =2, rel_heights = c(1, 0.3))
 final_plot
 
+<<<<<<< HEAD
+all_indicators <- ggarrange(pfpr, incidence,death,u5_pfpr, u5_incidence,death_U5, ncol =3, nrow = 3, common.legend = TRUE, legend = "bottom")
+ggsave(paste0(print_path, '/', Sys.Date(),  '_u5_incidence_line_plot_GTS_target.pdf'), u5_incidence, width=13, height=13)
+=======
 #all_indicators <- ggarrange(pfpr, incidence,death,u5_pfpr, u5_incidence,death_U5, ncol =3, nrow = 3, common.legend = TRUE, legend = "bottom")
+<<<<<<< HEAD
 ggsave(paste0(print_path, '/', Sys.Date(),  '_hbhi_nigeria_burden_projections.pdf'), final_plot)
+=======
+ggsave(paste0(print_path, '/', Sys.Date(),  '_hbhi_nigeria_burden_projections.pdf'), final_plot, width=13, height=13)
+>>>>>>> 0631069b984ea7e3f011d45de577d4869297335e
+>>>>>>> 08739fa18a426c8bd497f5636b7eff26ac8e3752
 

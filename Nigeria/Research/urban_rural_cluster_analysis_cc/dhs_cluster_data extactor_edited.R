@@ -6,6 +6,7 @@ rm(list=ls())
 
 #devtools::install_github("hadley/tidyverse")
 
+<<<<<<< HEAD
 ## -----------------------------------------
 ### Paths
 ## -----------------------------------------
@@ -40,25 +41,35 @@ source(file.path(VarDir, "generic_functions", "DHS_fun.R"))
 #        "fuzzyjoin", "splitstackshape", "magrittr", "caTools", "nnt")
 # 
 # lapply(x, library, character.only = TRUE) #applying the library function to packages
+=======
+>>>>>>> 08739fa18a426c8bd497f5636b7eff26ac8e3752
 
 
+# Reading in the necessary packages 
+x <- c("tidyverse", "survey", "haven", "ggplot2", "purrr", "summarytools", "stringr", "sp", "rgdal", "raster",
+       "lubridate", "RColorBrewer","sf", "shinyjs", "tmap", "knitr", "labelled", "plotrix", "arules", "foreign",
+       "fuzzyjoin", "splitstackshape", "magrittr", "caTools", "nnt")
 
+lapply(x, library, character.only = TRUE) #applying the library function to packages
 
 
 # set document path to current script path 
-#setwd("C:/Users/pc/Documents/NU - Malaria Modeling/Non Linear")
-
-
+setwd("C:/Users/pc/Documents/NU - Malaria Modeling/Non Linear")
 
 # reads in functions so we can alias it using funenv$
 funEnv <- new.env()
+<<<<<<< HEAD
 sys.source(file = file.path(ResDir, "functions", "Nigeria functions.R"), 
+=======
+sys.source(file = file.path("C:/Users/pc/Documents/NU - Malaria Modeling/Non Linear", "Nigeria functions.R"), 
+>>>>>>> 08739fa18a426c8bd497f5636b7eff26ac8e3752
            envir = funEnv, toplevel.env = funEnv)
 
 
 options(survey.lonely.psu="adjust") # this option allows admin units with only one cluster to be analyzed
 
 
+<<<<<<< HEAD
 
 dhs <-read.files(".*NGPR.*\\.DTA", DataDir, read_dta)
 dhs <- dhs[-c(1, 2, 3, 5)]
@@ -74,9 +85,20 @@ dhs <- dhs[-c(1, 2, 3, 5)]
 # 
 # 
 # look_for(dhs [[1]], "altitude")
+=======
+dhs <- list.files(pattern = ".*NGPR7AFL.*\\.DTA", recursive = F, full.names = TRUE)
+dhs <- sapply(dhs, read_dta, simplify = F)
 
+dhs2 <- list.files(pattern = ".*NGKR7AFL.*\\.DTA", recursive = F, full.names = TRUE)
+dhs2 <- sapply(dhs2, read_dta, simplify = F)
+# clean and select pfpr data 
+>>>>>>> 08739fa18a426c8bd497f5636b7eff26ac8e3752
 
+pfpr_data <- dhs[[1]] # uses the DHS person recode dataset 
 
+look_for(dhs[[1]], "smear")
+
+<<<<<<< HEAD
 #table(dhs[[1]]$hml32) # frequency table for smear test 
 
 #subsetting for microscopy (denominator -hh selected for hemoglobin, child slept there last night and have result for test)
@@ -85,6 +107,9 @@ pfpr_df <- map(dhs, ~filter(.x, hv042 == 1 & hv103 == 1 & hc1 %in% c(6:59) & hml
 
 # number of children per cluster 
 clusters_2010 <- pfpr_df[[1]] %>%  group_by(hv001) %>% summarise(num_child = n()) 
+=======
+table(pfpr_data$hml32) # frequency table for smear test 
+>>>>>>> 08739fa18a426c8bd497f5636b7eff26ac8e3752
 
 hist_10= ggplot(clusters_2010, aes(x=num_child))+
   geom_histogram(color="darkgreen", fill ='lightgreen')+
@@ -113,6 +138,10 @@ cluster_plot <-ggarrange(hist_10 + annotate("text", x = 40, y = 10, label = "Mea
           hist_15 + annotate("text", x = 30, y = 15, label = "Mean (SD) = 14.54 (7.28)"), 
           hist_18 + annotate("text", x = 12, y = 60, label = "Mean (SD) = 6.11 (2.99)"))
 
+<<<<<<< HEAD
+=======
+pfpr_df <- pfpr_data %>% filter(hv042 == 1 & hv103 == 1 & hc1 %in% c(6:59) & hml32 %in% c(0, 1,6))
+>>>>>>> 08739fa18a426c8bd497f5636b7eff26ac8e3752
 
 
 ggsave(paste0(PrintDir, '/', Sys.Date(),  '_number_children_cluster_DHS_10_15_18.pdf'), cluster_plot)
@@ -121,12 +150,12 @@ ggsave(paste0(PrintDir, '/', Sys.Date(),  '_number_children_cluster_DHS_10_15_18
 
 # prep dataset for cluster level analysis - we start with urban cluster analysis 
 
-val_labels(pfpr_df$hv025) # value labels for place of residence, 1 = urban and 2 = rural
+val_labels(pfpr_df$hv270) # value labels for place of residence, 1 = urban and 2 = rural
 
-pfpr_place <- pfpr_df %>% filter(hv025 == 1)
+#pfpr_place <- pfpr_df %>% filter(hv025 == 1)
 #pfpr_dhs <- pfpr_data%>% filter(hv025 == 1)
-# pfpr_place <- pfpr_df
-# pfpr_dhs <- pfpr_data
+pfpr_place <- pfpr_df
+pfpr_dhs <- pfpr_data
 # estimate cluster-level malaria prevalence
 
 pfpr_place<- funEnv$dataclean.para(pfpr_place, hv005, hc1, hml32, 'hml32', 'p_test') 
@@ -136,9 +165,10 @@ svy_mal <- funEnv$svydesign.fun(pfpr_place)
 clu_est <- funEnv$result.fun('p_test', 'hv001', design=svy_mal, pfpr_place, "hv007")
 head(clu_est)
 
+
 # next we estimate proportion of people in high SES by cluster
 # recode the weath quintile variable 
-table(pfpr_df$hv270)
+table(pfpr_df$hv106)
 
 pfpr_wealth <- pfpr_df %>%  mutate(wealth = ifelse(hv270 <4, 0, 1))
 table(pfpr_wealth$wealth)
@@ -148,13 +178,13 @@ table(pfpr_wealth$wealth_2)
 
 svyd_wealth<- funEnv$svydesign.fun(pfpr_wealth)
 
-clu_wealth <- funEnv$result.fun('wealth_2', 'hv001', design=svyd_wealth, pfpr_wealth, "hv007")
+clu_wealth <- result.fun('wealth_2', 'hv001', design=svyd_wealth, pfpr_wealth, "hv007")
 head(clu_wealth)
 
 
 #disagreegate wealth 
-# look_for(dhs[[1]], "material")
-# table(pfpr_df$hv205)
+look_for(dhs[[1]], "material")
+table(pfpr_df$hv205)
 
 
 #Housing quality
@@ -432,6 +462,27 @@ head(clu_u5_care)
 colnames(clu_u5_care)[1]<- "hv001"
 #colnames(clu_u5_care)[4]<- "hv007"
 
+#fever prevelence
+
+look_for(dhs2[[1]], "fever")
+
+table(dhs2[[1]]$h22)
+
+pfpr_fever <- dhs2[[1]] %>% filter(b5 == 1  & b8 <  5) 
+
+pfpr_fever <- dataclean(pfpr_fever, v005, v005,'h22', "fever_prev")
+pfpr_fever <- pfpr_fever %>% filter(fever_prev != 8)
+table(pfpr_fever$fever_prev)
+
+svyd_fever <- svydesign.fun(pfpr_fever)
+table(pfpr_fever$fever_prev)
+
+clu_u5_fever<- result.fun('fever_prev', 'v001', design=svyd_fever, pfpr_fever, "v007")
+head(clu_u5_fever)
+colnames(clu_u5_fever)[1]<- "hv001"
+
+write.csv(clu_u5_fever, "clu_u5_fever18.csv")
+
 # population density
 clu_pop_den <- read.csv("NGGC7BFL.csv")%>% 
   dplyr::select(hv001 = DHSCLUST, pop_den = UN_Population_Density_2015)%>% 
@@ -579,6 +630,3 @@ summary(reg)
 
 # fever proportion (maybe)
 
-#############################################################################################################
-#### read in IR dataset 
-##############################################################################################################

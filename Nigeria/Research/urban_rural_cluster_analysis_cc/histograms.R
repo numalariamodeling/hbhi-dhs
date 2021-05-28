@@ -50,22 +50,31 @@ if(histogram == T) {
   
   
   df <- merged_df[ ,colnames(merged_df) 
-                   %in% c("pop_den", "l_pop_den","sex_f", "log_sex_f", "Rural_urban")]
+                   %in% c("hv001", "l_pop_den", "sex_f", "wealth_2", "edu_a", "hh_size", "ACT_use_u5", 
+                          "hh_members_age", "humidindex", "annual_precipitation", "net_use", "build_count", "Rural_urban")]
   
   
   if(type!="combined"){
     df_split <- split(df, df$Rural_urban)
     df_split_long <- lapply(df_split, function(x) gather(x, key = "text", value = "value"))
-    new_labels <- c("Population density", "Log Population density", "Prop. of famale", "Log Prop. of famale") 
-    names(new_labels)<-c("pop_den", "l_pop_den","sex_f", "log_sex_f")
+    new_labels <- c("Log Population density", "% of famale", "% of wealth","% of education", "Household size", 
+                    "% of U5 ACT use", "Household average age", "Humidity index", "Annual precipitation",
+                    "% of net use", "Building count", "Residence") 
+    
+    names(new_labels)<-c("l_pop_den", "sex_f", "wealth_2", "edu_a", "hh_size", "ACT_use_u5", 
+                         "hh_members_age", "humidindex", "annual_precipitation", "net_use", "build_count", "Rural_urban")
     
     histo_list <- lapply(df_split_long, histofun)
     ggsave("lurban_histograms_2.pdf", plot =histo_list[[1]], path=file.path(PlotDir, "histograms"))
     ggsave("rural_histograms_2.pdf", plot =histo_list[[2]], path=file.path(PlotDir, "histograms"))
   }else if(type == "combined"){
     df_combo <- df %>%  gather(key = "text", value = "value")
-    new_labels <- c("Population density", "log Population density", "Prop. of famale", "log Prop. of famale") 
-    names(new_labels)<-c("pop_den", "l_pop_den","sex_f", "log_sex_f")
+    new_labels <-c("Log Population density", "% of famale", "% of wealth","% of education", "Household size", 
+                   "% of U5 ACT use", "Household average age", "Humidity index", "Annual precipitation",
+                   "% of net use", "Building count", "Residence")
+    
+    names(new_labels)<-c("l_pop_den", "sex_f", "wealth_2", "edu_a", "hh_size", "ACT_use_u5", 
+                         "hh_members_age", "humidindex", "annual_precipitation", "net_use", "build_count", "Rural_urban")
     histo<- histofun(df_combo)
     ggsave("combined_histograms_2.pdf", plot =histo, path=file.path(PlotDir, "histograms"))
   }else{
@@ -77,3 +86,21 @@ if(histogram == T) {
   print("histograms will not be made")
 }
 
+
+library(ggplot2)
+# Basic density
+melted_data <- melt(df[,c("Freq")], id.vars = "Var1")
+ggplot(melted_data, aes(x= value, fill = variable, color = variable)) +
+  geom_density(alpha = 0.1) +
+  theme(panel.background = element_rect(fill = "white", colour = "#BFD5E3", linetype = "solid"), 
+panel.grid.major = element_line(size = 0.05, linetype = 'solid', colour = "azure2")) +
+  scale_x_continuous(expand = c(0, 0)) + scale_y_continuous(expand = c(0, 0))
+
+melted_data <- melt(df[,c("hv001", "net_use")], id.vars = "hv001")
+ggplot(melted_data, aes(x= value, fill = variable, color = variable)) +
+  geom_density(alpha = 0.1) +
+  theme(panel.background = element_rect(fill = "white", colour = "#BFD5E3", linetype = "solid"), 
+        panel.grid.major = element_line(size = 0.05, linetype = 'solid', colour = "azure2")) +
+  scale_x_continuous(expand = c(0, 0)) + scale_y_continuous(expand = c(0, 0))
+
+densityPlot(~ edu_a, show.bw=TRUE, method="kernel", data=df)

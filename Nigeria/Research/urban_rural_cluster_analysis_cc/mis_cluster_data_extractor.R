@@ -28,16 +28,16 @@ sys.source(file = file.path("C:/Users/pc/Documents/NU - Malaria Modeling/Non Lin
 options(survey.lonely.psu="adjust") # this option allows admin units with only one cluster to be analyzed
 
 
-dhs <- list.files(pattern = ".*MIS2010PR.*\\.DTA", recursive = F, full.names = TRUE)
+dhs <- list.files(pattern = ".*MIS2015PR.*\\.DTA", recursive = F, full.names = TRUE)
 dhs <- sapply(dhs, read_dta, simplify = F)
 
-dhs2 <- list.files(pattern = ".*MIS2010KR.*\\.DTA", recursive = F, full.names = TRUE)
+dhs2 <- list.files(pattern = ".*MIS2015KR.*\\.DTA", recursive = F, full.names = TRUE)
 dhs2 <- sapply(dhs2, read_dta, simplify = F)
 # clean and select pfpr data 
 
 pfpr_data <- dhs[[1]] # uses the DHS person recode dataset 
 
-look_for(dhs[[1]], "smear")
+look_for(dhs[[1]], "fever")
 
 table(pfpr_data$hml32) # frequency table for smear test 
 
@@ -346,7 +346,7 @@ head(clu_hh_size)
 
 # care seeking proportion among u5 children
 
-look_for(dhs2[[1]], "Artemisinin")
+look_for(dhs2[[1]], "fever")
 
 table(dhs2[[1]]$ml13e)
 
@@ -363,6 +363,29 @@ clu_u5_care<- result.fun('ACT_use_u5', 'v001', design=svyd_care, pfpr_care, "v00
 head(clu_u5_care)
 colnames(clu_u5_care)[1]<- "hv001"
 #colnames(clu_u5_care)[4]<- "hv007"
+
+#fever prevelence
+
+look_for(dhs2[[1]], "fever")
+
+table(dhs2[[1]]$h22)
+
+pfpr_fever <- dhs2[[1]] %>% filter(b5 == 1  & b8 <  5) 
+
+pfpr_fever <- dataclean(pfpr_fever, v005, v005,'h22', "fever_prev")
+pfpr_fever <- pfpr_fever %>% filter(fever_prev != 8)
+table(pfpr_fever$fever_prev)
+
+svyd_fever <- svydesign.fun(pfpr_fever)
+table(pfpr_fever$fever_prev)
+
+clu_u5_fever<- result.fun('fever_prev', 'v001', design=svyd_fever, pfpr_fever, "v007")
+head(clu_u5_fever)
+colnames(clu_u5_fever)[1]<- "hv001"
+
+write.csv(clu_u5_fever, "clu_u5_fever15.csv")
+
+
 
 # population density
 clu_pop_den <- read.csv("NGGC7BFL.csv")%>% 

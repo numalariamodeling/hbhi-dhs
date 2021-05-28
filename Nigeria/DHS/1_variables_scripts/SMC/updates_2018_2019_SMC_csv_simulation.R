@@ -11,12 +11,17 @@ x <- c("tidyverse", "survey", "haven", "ggplot2", "purrr", "summarytools", "stri
 lapply(x, library, character.only = TRUE) #applying the library function to packages
 
 smc <- read.csv("bin/smc_table/smc_df2_fin_by_round.csv", colClasses=c("month" = "character")) %>% mutate(adm1 = trimws(adm1), month = as.Date(month, format="%d/%m/%Y"))
+<<<<<<< HEAD
 
 smc$coverage = (smc$coverage_high_access * 0.5) + (smc$coverage_low_access*0.5)
 
 smc_hag <- read.csv("bin/smc_table/SMC_overall_cov_Fhag_2018_2019.csv") %>% mutate(adm1 = trimws(adm1)) %>% 
   rename(coverage_updated = coverage)
 summary(smc_hag$Fhag)
+=======
+ 
+smc_hag <- read.csv("bin/smc_table/SMC_overall_cov_Fhag_2018_2019.csv") %>% mutate(adm1 = trimws(adm1))
+>>>>>>> 08739fa18a426c8bd497f5636b7eff26ac8e3752
 
 smc_2 <- left_join(smc, smc_hag, by = c("adm1", "round", "year"))
 

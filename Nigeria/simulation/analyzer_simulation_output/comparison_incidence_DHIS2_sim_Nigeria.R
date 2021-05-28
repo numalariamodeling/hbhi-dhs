@@ -21,7 +21,7 @@
 rm(list = ls())
 list.of.packages <- c("tidyverse", "ggplot2", "purrr",  "stringr", "sp", "rgdal", "raster", "hablar", 
                       "lubridate", "RColorBrewer", "ggpubr", "gridExtra", "data.table",  "nngeo", "reshape2", "foreign", "ggthemes", "viridis", "lemon",
-                      "egg", "grid", "boot")
+                      "egg", "grid")
 lapply(list.of.packages, library, character.only = TRUE) #applying the library function to packages
 
 ###################################################################
@@ -32,7 +32,7 @@ box_hbhi_filepath = paste0(box_filepath, '/hbhi_nigeria')
 ifelse(!dir.exists(file.path(box_hbhi_filepath, "project_notes/publication/Hbhi modeling/validation/incidence")), 
        dir.create(file.path(box_hbhi_filepath, "project_notes/publication/Hbhi modeling/validation/incidence")), FALSE)
 print_path <- file.path(box_hbhi_filepath, "project_notes/publication/Hbhi modeling/validation/incidence")
-sim_input <- file.path(box_hbhi_filepath, "simulation_inputs/projection_csvs/archetype_files")
+
 
 # - - - - - - - - - - - - - - - - - - - - - - #
 # incidence from dhis2 and population data
@@ -49,7 +49,7 @@ glimpse(incidence_dhis2)
 # - - - - - - - - - - - - - - - - #
 # simulation output
 # - - - - - - - - - - - - - - - - #
-sim_filepath_2010 = paste0(box_hbhi_filepath, '/simulation_output/2010_to_2020_v10/NGA 2010-20 burnin_hs+itn+smc')
+sim_filepath_2010 = paste0(box_hbhi_filepath, '/simulation_output/2010_to_2020_v10/NGA 2010-20 burnin_hs+itn+smc 1')
 pfpr_case_all_2010 = fread(paste0(sim_filepath_2010, '/All_Age_monthly_Cases.csv'))
 pfpr_case_all_2010[,date:=as.Date(date)]
 pfpr_case_all_2010$year = lubridate::year(pfpr_case_all_2010$date)
@@ -59,19 +59,14 @@ pfpr_case_u5_2010[,date:=as.Date(paste0(year,"-",month,"-01"),format="%Y-%m-%d")
 
 # mean values across runs
 pfpr_case_all_runMeans  <- pfpr_case_all_2010 %>% group_by(date, LGA) %>%  
-  summarise_all(mean) %>%  cbind(pfpr_case_all_2010 %>% group_by(date, LGA) %>% 
-                                    summarise(max_RT = max(Received_Treatment), min_RT = min(Received_Treatment),
-                                     max_NMF_RT = max(Received_NMF_Treatment), min_NMF_RT = min(Received_NMF_Treatment))) %>%  
-  ungroup() 
-
-colnames(pfpr_case_all_runMeans)[2]<- 'LGA'
-# pfpr_case_u5_runMeans  <- pfpr_case_u5_2010 %>% group_by(date, LGA) %>%  
-#   summarise_all(mean) %>% ungroup() 
+  summarise_all(mean) %>% ungroup() 
+pfpr_case_u5_runMeans  <- pfpr_case_u5_2010 %>% group_by(date, LGA) %>%  
+  summarise_all(mean) %>% ungroup() 
 
 
 
 ###############################################################################
-# merge DHIS2 and corresponding simulation values aand aggregate to state level
+# merge DHIS and corresponding simulation values aand aggregate to state level
 ###############################################################################
 # match the same DS from simulation and data
 incidence_matched = merge(x=incidence_dhis2, y=pfpr_case_all_runMeans, by=c('LGA', 'year','month'), all.x=TRUE)
@@ -86,14 +81,16 @@ admin1DS = fread(DS_arch_filename)
 admin1DS = admin1DS[,c('LGA', 'State', 'Archetype')]
 
 
-#aggregate and merge
-incidence_matched_state = left_join(incidence_matched, admin1DS, by=c('LGA')) %>%
-  dplyr::select(-c(LGA, Archetype, Run_Number, month, year, date...1, date...13, LGA...14, repDS)) %>%
-  group_by(State, date) %>%  {left_join (summarise_at(., vars(-`Statistical Population`), sum),
-                                           summarise_at(., vars(`Statistical Population`), mean))} 
+#aggregate and merge 
+incidence_matched_state = left_join(incidence_matched, admin1DS, by=c('LGA')) %>% dplyr::select(-c(LGA, Archetype, Run_Number, month, year, date.y, repDS)) %>% 
+  group_by(State, date.x) %>%  {left_join (summarise_at(., vars(-`Statistical Population`), sum),
+                                           summarise_at(., vars(`Statistical Population`), mean)
+  )}
 
 
-
+<<<<<<< HEAD
+###############################################################################
+=======
 
 ###############################################################################
 # bootstrap to generate intervals on the sum 
@@ -210,50 +207,27 @@ rep_DS_pop= read.csv(file.path(box_hbhi_filepath, "incidence", "population_by_re
 # write.csv(fin_df_repDS, paste0(box_hbhi_filepath, '/', "incidence",  '/', Sys.Date(), "_archetype_incidence_NGA_RIA_v3.csv"))
 # write.csv(fin_df_repDS, paste0(sim_input, '/',  "archetype_incidence_NGA_RIA_v5.csv"))
 # ###############################################################################
+>>>>>>> 0631069b984ea7e3f011d45de577d4869297335e
 # Calculate incidence for data  and simulation and scale data 
 ###############################################################################
 
-
-# combine case data and computed sums 
-
-incidence_matched_state = left_join(incidence_matched_state, sum_ci_all, by =c("State", "date")) 
-
-# incidence calculations for simulation 
+# incidence calculations 
 incidence_matched_state$treatment_incidence_include_NMF_state = 
   (incidence_matched_state$Received_Treatment + incidence_matched_state$Received_NMF_Treatment) / incidence_matched_state$`Statistical Population` * 30/365* 1000
-
-incidence_matched_state$treatment_incidence_include_NMF_state_low = 
-  (incidence_matched_state$min_RT + incidence_matched_state$min_NMF_RT)/ incidence_matched_state$`Statistical Population` * 30/365* 1000
-
-incidence_matched_state$treatment_incidence_include_NMF_state_high = 
-  (incidence_matched_state$max_RT + incidence_matched_state$max_NMF_RT)/ incidence_matched_state$`Statistical Population` * 30/365* 1000
-
-#incidence calculations for data 
 incidence_matched_state$incidence_state = 
   (incidence_matched_state$AllagesOutpatientMalariaC / incidence_matched_state$geopode.pop) * 1000
 
-incidence_matched_state$incidence_state_low = 
-  (incidence_matched_state$sum_l_ci / incidence_matched_state$geopode.pop) * 1000
-
-
-incidence_matched_state$incidence_state_high = 
-  (incidence_matched_state$sum_u_ci / incidence_matched_state$geopode.pop) * 1000
 
 
 
-#continue here 
 #calculate scaling params and add 
-incidence_matched_df <- incidence_matched_state %>%  dplyr::select(State, date, treatment_incidence_include_NMF_state,
-                                                                   treatment_incidence_include_NMF_state_low, 
-                                                                   treatment_incidence_include_NMF_state_high, 
-                                                                   incidence_state,incidence_state_low,incidence_state_high) %>%
-  mutate(date = as.Date(date), year = lubridate::year(date), month= lubridate::month(date),
-         scaling = treatment_incidence_include_NMF_state/incidence_state,
+incidence_matched_df <- incidence_matched_state %>%  dplyr::select(State, date.x, treatment_incidence_include_NMF_state,incidence_state) %>%
+  mutate(date = as.Date(date.x), year = lubridate::year(date.x), scaling = treatment_incidence_include_NMF_state/incidence_state,
          scaling = ifelse(!is.finite(scaling), 1, scaling)) %>%  
-  dplyr::select(-date) 
+  dplyr::select(-date.x) 
 
-mean_scaling <- incidence_matched_df %>%  group_by(State, year) %>%  
-  summarise(median_scale = median(scaling)) 
+mean_scaling <- incidence_matched_df %>%  group_by(State, year) %>%  summarise(mean_scale = mean(scaling), median_scale = median(scaling), 
+                                                                              min_scale = min(scaling), max_scale = max(scaling)) 
 
 
 
@@ -262,41 +236,13 @@ mean_scaling <- incidence_matched_df %>%  group_by(State, year) %>%
 # Prepare data set to make time series plot and ccf plot 
 ###############################################################################
 
-incidence_matched_df  <- left_join(incidence_matched_df, mean_scaling, by=c("State", "year")) %>%
-mutate(new_incidence_state = incidence_state *median_scale, 
-       new_incidence_state_low = incidence_state_low * median_scale,
-       new_incidence_state_high = incidence_state_high * median_scale, 
-       State = ifelse(State == "Federal Capital Territory", "FCT", State))
-
+incidence_matched_df  <- left_join(incidence_matched_df, mean_scaling, by=c("State", "year")) %>%  
+mutate(new_incidence_state = incidence_state *median_scale, State = ifelse(State == "Federal Capital Territory", "FCT", State)) 
 
 incidence_matched_df_v2 <- incidence_matched_df %>% 
-  dplyr::select(State, year, month, treatment_incidence_include_NMF_state,  new_incidence_state) %>%
-  pivot_longer(cols = c("treatment_incidence_include_NMF_state", 
-                        "new_incidence_state"), names_to = "type", values_to = "value") 
+  pivot_longer(cols = c("treatment_incidence_include_NMF_state","new_incidence_state"), names_to = "type", values_to = "value") %>% 
+  mutate(month = month(date))
 
-incidence_matched_df_v2$row_num <- 1:nrow(incidence_matched_df_v2)
-
-incidence_matched_df_low <- incidence_matched_df %>% 
-  dplyr::select(State, year, month, treatment_incidence_include_NMF_state_low,  new_incidence_state_low) %>% 
-  pivot_longer(cols = c("treatment_incidence_include_NMF_state_low", 
-                        "new_incidence_state_low"), names_to = "ci_low", values_to = "lower_limit") 
-
-incidence_matched_df_low$row_num <- 1:nrow(incidence_matched_df_low)
-
-incidence_matched_df_high <- incidence_matched_df %>% 
-  dplyr::select(State, year, month, treatment_incidence_include_NMF_state_high,  new_incidence_state_high) %>% 
-  pivot_longer(cols = c("treatment_incidence_include_NMF_state_high", 
-                        "new_incidence_state_high"), names_to = "ci_high", values_to = "upper_limit") 
-
-incidence_matched_df_high$row_num <- 1:nrow(incidence_matched_df_high) 
-
-
-
-#join all three dfs 
-
-incidence_matched_df_v2 = left_join(incidence_matched_df_v2, incidence_matched_df_low, by = 'row_num') %>% 
-  left_join(incidence_matched_df_high, by= 'row_num')
-  
 
 incidence_matched_df_v2$State <- paste0(incidence_matched_df_v2$State, " ",  "(", as.character(incidence_matched_df_v2$year), ")")
 
@@ -311,12 +257,16 @@ incidence_matched_df_split = split(incidence_matched_df_v2, incidence_matched_df
 #incidence 
 
 plot_ <-function(data){
-  pd <- position_dodge(0.25)
   p<-ggplot(data, aes(x =month, y =value, group = type, color=type)) +
+<<<<<<< HEAD
+    geom_line() + 
+    scale_color_viridis(discrete = TRUE) +
+=======
     geom_errorbar(aes(ymin = lower_limit, ymax = upper_limit), width =.2, position=pd)+
     geom_line(position=pd) + 
     geom_point(position=pd, size=0.8, shape=21, fill="white")+
     #scale_color_viridis(discrete = TRUE) +
+>>>>>>> 0631069b984ea7e3f011d45de577d4869297335e
     facet_wrap(~State, scales = "free")+
     scale_color_manual(labels = c("health facility data (rescaled)", "simulation (includes RDT + non-malarial fevers)"), values = c("darkorchid4", "deepskyblue2")) +
     scale_x_continuous(labels = function(x) month.abb[x], breaks = c(1, 4, 7, 10))+
@@ -465,9 +415,7 @@ Abia_Adamawa <- incidence_matched_df_split[[5]] %>%  filter(str_detect(State, "A
 gg_abia_adamawa <-plot_(Abia_Adamawa)
 gg_abia_adamawa
 
-pdf(paste0(print_path, '/', Sys.Date(), '_Abia_Adamawa_incidence_.pdf'),width=13, height=13)
-gg_abia_adamawa
-dev.off()
+
 
 #ccf plot 
 abia_ada <- incidence_matched_df %>% filter(str_detect(State, "Abia|Adamawa"), year == 2018)
