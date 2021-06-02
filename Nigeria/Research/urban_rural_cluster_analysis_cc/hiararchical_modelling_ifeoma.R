@@ -1,6 +1,7 @@
 rm(list=ls())
 
-x <- c("tidyverse","INLA", "ggplot2", "ggpubr", "inlabru", "rgdal", "sp", "sf", "tmap", 'paletteer', 'cowplot', 'gridExtra')
+x <- c("tidyverse","INLA", "ggplot2", "ggpubr", "inlabru", "rgdal", "sp", "sf", "tmap", 'paletteer', 'cowplot', 'gridExtra',
+       'ggmap')
 
 
 
@@ -50,7 +51,7 @@ urbandataset <- clu_variales_10_18 %>% filter(Rural_urban == 1) %>%
   na.omit()
 
 urbandataset$log_pop_den <- log(pop_den)
-urabndataset$
+
 
 
 ####################################################################################
@@ -77,20 +78,17 @@ mis10_sf <- st_read(file.path(DataDir,"NG_2010_MIS_06192019/NGGE61FL/NGGE61FL.sh
 
 #join clusters to variables
 df_18 <- urbandataset %>% filter(data_source == "dhs2018") %>% dplyr::select(hv001, p_test, state)
-df_18$prev_cat <- ifelse(is.na(df_18$p_test),  "missing", "data available") 
 dhs_18 <- left_join(dhs18_sf, df_18, by = c("DHSCLUST" ="hv001")) #447 clusters had prevalence and covariate data of the 576 areas that were sampled in urban areas 
-
+dhs_18$prev_cat <- ifelse(is.na(dhs_18$p_test),  "missing", "data available") 
 
 df_15 <- urbandataset %>% filter(data_source == "mis2015", Rural_urban == 1) %>% dplyr::select(hv001, p_test, state)
-df_15$prev_cat <- ifelse(is.na(df_15$p_test),  "missing", "data available") 
 dhs_15 <- left_join(mis15_sf, df_15, by = c("DHSCLUST" ="hv001"))
-
+dhs_15$prev_cat <- ifelse(is.na(dhs_15$p_test),  "missing", "data available")
 
 
 df_10 <- urbandataset %>% filter(data_source == "mis2010") %>% dplyr::select(hv001, p_test, state)
-df_10$prev_cat <- ifelse(is.na(df_10$p_test),  "missing", "data available") 
 dhs_10 <- left_join(mis10_sf, df_10, by = c("DHSCLUST" ="hv001"))
-
+dhs_10$prev_cat <- ifelse(is.na(dhs_10$p_test),  "missing", "data available") 
 
 #let make state malaria maps by year 
 
@@ -575,22 +573,75 @@ LGAshp_sf = st_as_sf(LGAshp) %>%  filter(State == 'Lagos')
 lag_dhs_18 = dhs_18 %>%  filter(ADM1NAME  == 'LAGOS')
 lag_dhs_10 = dhs_10 %>%  filter(ADM1NAME  == 'LAGOS')
 
-lag_malaria=tm_shape(LGAshp_sf) + 
+
+#google key for extracting locations 
+register_google(key = 'AIzaSyBbBJJ3CDGRudUMxvS83JY83s2wOIO0E0A')
+getOption("ggmap")
+
+locations <- c('Banana Island, Lagos', 'Makoko, Lagos', 'Ajegunle, Lagos') %>%
+  geocode()
+
+
+loc_sf <- st_as_sf(locations, coords = c("lon", "lat"), crs = 4326)
+class(loc_sf)
+
+loc_sf$place_name = c('Banana Island', 'Makoko', 'Ajengunle')
+
+
+
+# tm_shape(LGAshp_sf) + 
+#   tm_polygons()+
+#   tm_text('LGA', size = 0.8)+
+#   tm_shape(df_18_fin)+ 
+#   tm_bubbles(size =0.2)+
+#   tm_shape(loc_sf)+
+#   tm_bubbles(size =0.5, col = 'red')
+
+#missing malaria prevalence dataframe in lagos 
+
+miss_prev_cat = lag_dhs_18 %>%  filter(prev_cat == 'missing')
+
+
+miss_lag_malaria=tm_shape(LGAshp_sf) + 
   tm_polygons()+
   tm_text('LGA')+
-  tm_shape(lag_dhs_18)+ 
-  tm_bubbles(size =0.2, col = "prev_cat", 
-             border.col= "black", palette="seq",textNA = "Missing", legend.col.show=F)+
-  tm_shape(lag_dhs_10)+ 
+  tm_shape(miss_prev_cat)+ 
+  tm_bubbles(size =0.2, col = 'grey', 
+             border.col= "black", palette="seq", legend.col.show=F)+ 
+  tm_shape(loc_sf)+
+  tm_bubbles(size =0.5, col = 'red')+
+  tm_text('place_name')+
+  tm_layout(title = 'areas with  missing data')
+
+
+geocode_lag = tm_shape(LGAshp_sf) +
+  tm_polygons()+
+  tm_shape(loc_sf)+
+  tm_bubbles(size =0.5, col = 'red')+
+  tm_text('place_name')+
+  tm_layout(title = 'geocoded areas (makoko, banana island, ajegunle')
+  
+# areas with data in lagos 
+
+dat_prev_cat = lag_dhs_18 %>%  filter(prev_cat == 'data available')
+dat_lag_malaria =
+  tm_shape(LGAshp_sf) + 
+  tm_polygons()+
+  tm_text('LGA')+
+  tm_shape(dat_prev_cat)+ 
   tm_bubbles(size =0.2, col = "prev_cat", 
              border.col= "black", palette="seq",textNA = "Missing", legend.col.show=F)+ 
   tm_layout(aes.palette = list(seq ="-RdYlBu"))+
-  tm_legend(legend.title.size = 0.8, legend.just="top")
+  tm_legend(legend.title.size = 0.8, legend.just="top")+
+tm_shape(loc_sf)+
+  tm_bubbles(size =0.5, col = 'red')+
+  tm_text('place_name')+
+  tm_layout(title = 'areas with data')
 
-map_state_samples =tmap_arrange(areas_sampled, malaria_areas, edo_malaria, lag_malaria, nrow = 2)
+map_state_samples =tmap_arrange(miss_lag_malaria, dat_lag_malaria, geocode_lag, nrow = 2)
 map_state_samples
 
-tmap_save(tm = map_state_samples, filename =paste0(PrintDir, '/', Sys.Date(),  '_sample_leakage_2018_DHS_edo_lagos.pdf')
+tmap_save(tm = map_state_samples, filename =paste0(PrintDir, '/', Sys.Date(),  '_sample_leakage_2018_DHS_lagos.pdf')
           , width=13, height=13, units ="in", asp=0,
           paper ="A4r", useDingbats=FALSE)
 
@@ -655,45 +706,10 @@ dhs_10 <- left_join(df_10, lga_dhsid_2010, by = "hv001")
 
 
 
-
-# join dhs variables to cluster points by year 
-
-#make LGA map 
-LGAshp <- readOGR(file.path(DataDir,"Nigeria_LGAs_shapefile_191016"), layer ="NGA_LGAs", use_iconv=TRUE, encoding= "UTF-8")
-
-LGAshp_sf = st_as_sf(LGAshp) %>%  filter(State == 'Lagos')
-
-#google key for extracting locations 
-register_google(key = 'AIzaSyCI06zJZjJbT42OGgbINuLcVR0hvXrcM1E')
-getOption("ggmap")
-
-locations <- c('Banana Island, Lagos') %>%
-  geocode()
-
-
-loc_sf <- st_as_sf(locations, coords = c("lon", "lat"), crs = 4326)
-class(loc_sf)
-
-
-# dhs cluster location and LGA for each location
-df_18_fin <- left_join(dhs18_sf, lga_dhsid_2018, by = c("DHSCLUST" ="hv001")) %>%  filter(URBAN_RURA == 'U', ADM1NAME == 'LAGOS') 
-plot(df_18_fin)
-
-
-tm_shape(LGAshp_sf) + 
-  tm_polygons()+
-  tm_text('LGA', size = 0.8)+
-  tm_shape(df_18_fin)+ 
-  tm_bubbles(size =0.2)+
-  tm_shape(loc_sf)+
-  tm_bubbles(size =0.5, col = 'red')
-  #tm_shape(LGAshp_sf)+
-  
  
 
 
 
-#AIzaSyCI06zJZjJbT42OGgbINuLcVR0hvXrcM1E google API 
 
 
 
