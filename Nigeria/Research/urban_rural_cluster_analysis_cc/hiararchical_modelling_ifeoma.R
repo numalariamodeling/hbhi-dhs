@@ -575,7 +575,7 @@ lag_dhs_10 = dhs_10 %>%  filter(ADM1NAME  == 'LAGOS')
 
 
 #google key for extracting locations 
-register_google(key = 'AIzaSyBbBJJ3CDGRudUMxvS83JY83s2wOIO0E0A')
+register_google(key = '')
 getOption("ggmap")
 
 locations <- c('Banana Island, Lagos', 'Makoko, Lagos', 'Ajegunle, Lagos') %>%
