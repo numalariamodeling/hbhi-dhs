@@ -1,0 +1,9 @@
+Variable ,subVariable ,smoothing ,smoothing_type,Age ,SAVE,plot,fun_path,main_path,variable_to_run,Notes  
+CM,State,FALSE,FALSE,,TRUE,TRUE,case_management/functions/cm_functions.R,case_management/CM_DHS_estimates.R,TRUE,options for smoothing column (yes or no)
+CM,LGA,FALSE,FALSE,,TRUE,TRUE,case_management/functions/cm_functions.R,case_management/CM_DHS_estimates.R,TRUE,"options for smoothing_type column (space, space_time, no)"
+CM,repDS,FALSE,FALSE,,TRUE,TRUE,case_management/functions/cm_functions.R,case_management/CM_DHS_estimates.R,TRUE,options for plot column (yes or no)
+CM,region,FALSE,FALSE,,TRUE,TRUE,case_management/functions/cm_functions.R,case_management/CM_DHS_estimates.R,TRUE,
+ITN,,,,> 18 ,,,,,,
+ITN,,,,U5,,,,,,
+ITN,,,,6-9,,,,,,
+ITN,,,,10-18,,,,,,
