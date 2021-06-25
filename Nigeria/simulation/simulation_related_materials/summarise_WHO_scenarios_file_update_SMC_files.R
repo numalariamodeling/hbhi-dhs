@@ -25,10 +25,11 @@ source(file.path(ScriptDir, "generic_functions", "DHS_fun.R"))
 ###############################################################################
 
 
-nsp_plan <- read.csv(file.path(ProjectDir, "scenarios", "210203_NGA_NSP-GFfr.csv")) %>% group_by(caseman_fund, rout_llins_fund, iptp_fund, smc_rounds_fund, ipti_fund) %>% tally() 
+nsp_plan <- read.csv(file.path(ProjectDir, "scenarios", "210623_NGA_NSP_GFfr.csv")) %>% group_by(caseman_nsp, mass_llins_nsp, iptp_nsp, smc_nsp, ipti_nsp) %>% tally() 
 
-funded_plan<- read.csv(file.path(ProjectDir, "scenarios", "210203_NGA_NSP-GFfr.csv")) %>% group_by(caseman_fund, rout_llins_fund, iptp_fund, smc_rounds_fund, ipti_fund) %>% tally()
+funded_plan<- read.csv(file.path(ProjectDir, "scenarios", "210623_NGA_NSP_GFfr.csv")) %>% group_by(caseman_fund, mass_llins_fund, iptp_fund, smc_fund_paar) %>% tally()
 
+sum(nsp_plan$n)
 
 ###############################################################################
 # SMC scenario 2 - 7 file update 

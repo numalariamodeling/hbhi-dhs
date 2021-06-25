@@ -1,0 +1,9 @@
+Analysis strategy 
+
+New thooughts 
+
+Do model selection with bayesian model averaging 
+develop a complex model with seasonal interaction variables 
+DHS already accounts for the influence of maternal immunity since only childre 6 - 59 years were sampled for malaria 
+Use splines to model non-linear relationships 
+Classify month of survey as rainy or dry season?
