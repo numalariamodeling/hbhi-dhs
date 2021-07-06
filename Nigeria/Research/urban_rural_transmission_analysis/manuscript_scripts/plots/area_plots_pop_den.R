@@ -5,14 +5,14 @@ NGDir <-file.path(NuDir, "data", "nigeria_dhs",  "data_analysis")
 DHSDir <- file.path(NGDir, "data","DHS", "Computed_cluster_information", "cluster_data_all_years")
 DataDir <- file.path(NGDir, "data","DHS", "Computed_cluster_information", "urban_malaria_covariates")
 ResearchDir <- file.path(NGDir, 'src', 'Research', 'urban_rural_transmission_analysis')
-ResultDir <-file.path(ResearchDir, "manuscript_scripts", "plots")
+ResultDir <-file.path(ResearchDir, "manuscript_scripts", "plots", "new_results")
 Rdata <- file.path(ResultDir)
 
 
 # # Reading in the necessary packages 
 x <- c("tidyverse", "survey", "haven", "ggplot2", "purrr", "readtext", "stringr", "sp", "rgdal", "raster",
        "lubridate", "RColorBrewer","sf", "shinyjs", "tmap", "knitr", "labelled", "plotrix", "arules", "foreign",
-       "fuzzyjoin", "splitstackshape", "magrittr", "caTools", "nnt", "reshape" )
+       "fuzzyjoin", "splitstackshape", "magrittr", "caTools", "nnt", "reshape", "ggpubr")
 # 
 lapply(x, library, character.only = TRUE) #applying the library function to packages
 
@@ -27,10 +27,10 @@ file.reader <- function(filename){
            header = T, sep = ',')
 }
 
-pop_density_0m <- file.reader("pop_density_0m_buffer_DHS_10_15_18.csv")
-pop_density_1000m <- file.reader("pop_density_1000m_buffer_DHS_10_15_18.csv")
-pop_density_2000m <- file.reader("pop_density_2000m_buffer_DHS_10_15_18.csv")
-pop_density_3000m <- file.reader("pop_density_3000m_buffer_DHS_10_15_18.csv")
+pop_density_0m <- file.reader("pop_density_0m_buffer_DHS_10_15_18_30sec.csv")
+pop_density_1000m <- file.reader("pop_density_1000m_buffer_DHS_10_15_18_30sec.csv")
+pop_density_2000m <- file.reader("pop_density_2000m_buffer_DHS_10_15_18_30sec.csv")
+pop_density_3000m <- file.reader("pop_density_3000m_buffer_DHS_10_15_18_30sec.csv")
 pop_density_FB_0m <- file.reader("pop_density_FB_0m_buffer_DHS_10_15_18.csv")
 pop_density_FB_1000m <- file.reader("pop_density_FB_1000m_buffer_DHS_10_15_18.csv")
 pop_density_FB_2000m <- file.reader("pop_density_FB_2000m_buffer_DHS_10_15_18.csv")
@@ -196,8 +196,8 @@ pop_density_df <- pop_density_df[,c("ID.x", "data_source", "Rural_urban","pop_de
 
 pop_density_df <- pop_density_df %>% mutate(pop_den = na_if(pop_den, -9999))
 
-pop_density_df <- pop_density_df %>% mutate(diff_fb_0_1000m = (pop_den_fb_1000m - pop_den_fb_0m))
-pop_density_df <- pop_density_df %>% mutate(diff_fb_0_3000m = (pop_den_fb_3000m - pop_den_fb_0m))
+pop_density_df <- pop_density_df %>% mutate(diff_0_1000m = (pop_den_1000m - pop_den_0m))
+pop_density_df <- pop_density_df %>% mutate(diff_0_3000m = (pop_den_3000m - pop_den_0m))
 
 
 pop_density_df_urban <- pop_density_df %>% filter(Rural_urban == 1)
@@ -206,7 +206,7 @@ pop_density_df_urban <- pop_density_df %>% filter(Rural_urban == 1)
 #################################### Counting NAs ####################################
 
 na_df <- as.data.frame(colSums(is.na(pop_density_df_urban)))
-write.csv(na_df, "na_count.csv")
+write.csv(na_df, "pop_den_na_count.csv")
 
 
 ###################################################################################
@@ -229,7 +229,7 @@ melted_data_fb_plot <- ggplot(melted_data_fb, aes(x= value, fill = variable, col
   geom_freqpoly(size = 2)  + ggtitle("Facebook population densities for all buffers") + theme_classic()
 melted_data_fb_plot
 
-diff_fb_melt_0_3000m <- melt(pop_density_df_urban[,c("ID.x",  "diff_fb_0_1000m", "diff_fb_0_3000m")], id.vars = "ID.x")
+diff_fb_melt_0_3000m <- melt(pop_density_df_urban[,c("ID.x",  "diff_0_1000m", "diff_0_3000m")], id.vars = "ID.x")
 diff_fb_melt_plot_0_3000 <- ggplot(diff_fb_melt_0_3000m, aes(x= value, fill = variable, color = variable)) +
   geom_freqpoly(size = 2) + ggtitle("Facebook pop density differnces from 0m buffer") + theme_classic()
 diff_fb_melt_plot_0_3000

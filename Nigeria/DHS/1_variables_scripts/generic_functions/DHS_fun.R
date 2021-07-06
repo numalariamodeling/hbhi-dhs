@@ -1,7 +1,7 @@
 #Make sure we have the right packages
 list.of.packages <- c("tidyverse", "survey", "haven", "ggplot2", "purrr",  "stringr", "sp", "rgdal", "raster",
                       "lubridate", "RColorBrewer","sf", "shinyjs", "tmap", "knitr", "labelled", "plotrix", "arules", "foreign",
-                      "fuzzyjoin", "splitstackshape","ggpubr", "nngeo")
+                      "fuzzyjoin", "splitstackshape","ggpubr", "nngeo", "locfit")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages)
 

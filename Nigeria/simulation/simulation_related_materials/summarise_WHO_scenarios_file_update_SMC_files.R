@@ -12,7 +12,7 @@ WorkDir <- file.path(ProjectDir, "simulation_output")
 ProcessDir <- file.path(WorkDir, "2020_to_2030_v3")
 ScriptDir <- file.path(TeamDir,"data/nigeria_dhs/data_analysis/src/DHS/1_variables_scripts")
 simInDir <- file.path(ProjectDir, "simulation_inputs/projection_csvs/projection_v2_old")
-simInDir_new <- file.path(ProjectDir, "simulation_inputs/projection_csvs/projection_v3")
+simInDir_new <- file.path(ProjectDir, "simulation_inputs/projection_csvs/projection_v4/SMC")
 ScenDir <- file.path(ProjectDir, "scenarios")
 DataDir<- file.path(TeamDir, "data", "nigeria_dhs", "data_analysis")
 subDir <- file.path(DataDir, "results/LGA_maps/SMC")
@@ -29,20 +29,9 @@ nsp_plan <- read.csv(file.path(ProjectDir, "scenarios", "210623_NGA_NSP_GFfr.csv
 
 funded_plan<- read.csv(file.path(ProjectDir, "scenarios", "210623_NGA_NSP_GFfr.csv")) %>% group_by(caseman_fund, mass_llins_fund, iptp_fund, smc_fund_paar) %>% tally()
 
-sum(nsp_plan$n)
-
-###############################################################################
-# SMC scenario 2 - 7 file update 
-###############################################################################
-
-# Read in SMC scenario files in need of updates 
-scen_dat <- read.csv(file.path(ProcessDir, "scenario_adjustment_info.csv"))
 
 
-for (row in 1:nrow(scen_dat)){
-  files <- list.files(path = file.path(simInDir), pattern = "*smc_increase|*smc_PAAR|*smc_noPAAR", full.names = TRUE)
-  df <- sapply(files, read_csv, simplify = F)
-}
+
 
 
 ###############################################################################
@@ -93,27 +82,42 @@ write.csv(smc_2_5_fin, file.path(simInDir_new, "smc_increase80_2020_2030.csv"))
 # SMC scenario 6 file update 
 ###############################################################################
 
-scen_6_old <- df[[3]] %>%  filter(year == 2020, round == 1) %>%  dplyr::select(State=adm1, LGA)
+
+# Read in SMC scenario 6 files in need of updates 
+scen_dat <- read.csv(file.path(ProcessDir, "scenario_adjustment_info.csv"))
+
+
+for (row in 1:nrow(scen_dat)){
+  files <- list.files(path = file.path(simInDir_new), pattern = "*_noPAAR", full.names = TRUE)
+  df <- sapply(files, read_csv, simplify = F)
+}
+
+#remove LGAs in Kwara
+scen_6_old <- df[[1]] %>%  filter(year == 2020, round == 1) %>%  dplyr::select(State=adm1, LGA) %>% filter(State != 'Kwara')
 
 
 # Read in scenarios from Bea 
 
-SMC_scen <- read.csv(file.path(ProjectDir, "scenarios", "210203_NGA_NSP-GFfr.csv")) %>%  dplyr::select(LGA=adm2, smc_fund, State=adm1) %>%  filter(smc_fund == "Yes") %>% 
+SMC_scen <- read.csv(file.path(ProjectDir, "scenarios", "210623_NGA_NSP_GFfr.csv")) %>%  dplyr::select(LGA=adm2, smc_fund_paar, State=adm1) %>%  filter(smc_fund_paar == "SMC") %>% 
   mutate(LGA = gsub("\\/","-", LGA),
          LGA = case_when(LGA == "Jama'Are" ~ "Jama'are",
                          LGA == "Jema'A"  ~ "Jema'a",
                          LGA == "Qua'An Pan" ~"Qua'an Pan",
+                         LGA == 'kiyawa' ~ 'Kiyawa',
+                         LGA == 'kaita' ~ 'Kaita',
                          TRUE ~ LGA))
 
 
-#check what is new 
-new_smc<- anti_join(SMC_scen, scen_6_old, by ="LGA") %>% dplyr::select(LGA, State) %>% 
+#check what is new (19 LGAs found)
+new_smc<- anti_join(SMC_scen,scen_6_old, by ="LGA") %>% dplyr::select(LGA, State) %>% 
   uncount(44) %>% 
-  mutate(year=rep(rep(2020:2030, each = 4), 5), round=rep(1:4, 55), duration = -1, coverage_high_access = 1, coverage_low_access = 0.6, max_age = 5, peak = "may")
+ mutate(year=rep(rep(2020:2030, each = 4), 19),  round=rep(1:4, 209), duration = -1, coverage_high_access = 1, coverage_low_access = 0.6, max_age = 5, peak = "may")
+
+
 
 
 #get simulation times for those in may from df 
-simday <- df[[3]] %>% filter(peak == "may", adm1  =="Katsina", LGA == "Baure") %>%  dplyr::select(simday)
+simday <- df[[1]] %>% filter(peak == "may", adm1  =="Katsina", LGA == "Baure") %>%  dplyr::select(simday) 
 
 
 scen_6_newSMC <- cbind(new_smc, simday)
@@ -124,28 +128,57 @@ new_smc_LGA<- anti_join(SMC_scen, scen_6_old) %>% dplyr::select(LGA)
 rep_DS <-read.csv(file.path(DataDir, "bin", "rep_DS", "representative_DS_orig60clusters.csv")) %>% filter(LGA %in% new_smc_LGA$LGA) 
 
 scen_6_newSMC <- left_join(scen_6_newSMC, rep_DS) %>%mutate(smc_plan1 ="SMC")
-colnames(scen_6_newSMC)[colnames(scen_6_newSMC) == 'X'] <- 'X1'
 colnames(scen_6_newSMC)[colnames(scen_6_newSMC) == 'State'] <- 'adm1'
 
-head(df[[3]])
+all_SMC <- df[[1]]  %>%  filter(  adm1 != 'Kwara')
+scen_6_newSMC <- scen_6_newSMC %>%  dplyr::select(-c(X))
+scen_6_newSMC$scenario = 'scenario 6'
+
+head(df[[1]])
 head(scen_6_newSMC)# number of columns are the same 
 
 
-smc_6_fin <- rbind(df[[3]],scen_6_newSMC) %>% mutate(scenario = 'scenario 6')
-
-write.csv(smc_6_fin, file.path(simInDir_new, "smc_PAAR_2020_2030.csv"))
+smc_6_fin <- rbind(all_SMC,scen_6_newSMC)
+write.csv(smc_6_fin, file.path(simInDir_new, "smc_scenario6_noPAAR_2020_2030.csv"))
 
 
 ###############################################################################
 # SMC scenario 7 file update 
 ###############################################################################
 
-scen_7_old <- df[[2]] %>%  filter(year == 2020, round == 1) %>%  dplyr::select(State=adm1, LGA)
+
+# Read in SMC scenario 6 files in need of updates 
+scen_dat <- read.csv(file.path(ProcessDir, "scenario_adjustment_info.csv"))
 
 
-smc_7_fin <- rbind(df[[2]],scen_6_newSMC)%>% mutate(scenario = 'scenario 7')
+for (row in 1:nrow(scen_dat)){
+  files <- list.files(path = file.path(simInDir_new), pattern = "*_PAAR", full.names = TRUE)
+  df <- sapply(files, read_csv, simplify = F)
+}
 
-write.csv(smc_7_fin, file.path(simInDir_new, "smc_noPAAR_2020_2030.csv"))
+scen_7_old <- df[[1]] %>%  filter(year == 2020, round == 1) %>%  dplyr::select(State=adm1, LGA)
+
+# Read in scenarios from Bea 
+
+SMC_scen <- read.csv(file.path(ProjectDir, "scenarios", "210623_NGA_NSP_GFfr.csv")) %>%  dplyr::select(LGA=adm2, smc_fund_paar, State=adm1) %>%  filter(smc_fund_paar != "No SMC") %>% 
+  mutate(LGA = gsub("\\/","-", LGA),
+         LGA = case_when(LGA == "Jama'Are" ~ "Jama'are",
+                         LGA == "Jema'A"  ~ "Jema'a",
+                         LGA == "Qua'An Pan" ~"Qua'an Pan",
+                         LGA == 'kiyawa' ~ 'Kiyawa',
+                         LGA == 'kaita' ~ 'Kaita',
+                         TRUE ~ LGA))
+
+
+#check what is new (No new LGAs)
+new_smc<- anti_join(scen_7_old, SMC_scen,by ="LGA") %>% dplyr::select(LGA, State)
+
+
+
+
+# smc_7_fin <- rbind(df[[2]],scen_6_newSMC)%>% mutate(scenario = 'scenario 7')
+
+#write.csv(smc_7_fin, file.path(simInDir_new, "smc_noPAAR_2020_2030.csv"))
 
 
 

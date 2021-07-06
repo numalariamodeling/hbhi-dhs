@@ -1,5 +1,5 @@
 # This script was used to update the nigeria scenario files from LLINS to PBO 
-# Date: 02-25-2021
+# Date: 06-25-2021
 
 
 
@@ -11,8 +11,8 @@ ProjectDir<- file.path(TeamDir, "projects/hbhi_nigeria")
 WorkDir <- file.path(ProjectDir, "simulation_output")
 ProcessDir <- file.path(WorkDir, "2020_to_2030_v2")
 ScriptDir <- file.path(TeamDir,"data/nigeria_dhs/data_analysis/src/DHS/1_variables_scripts")
-simInDir <- file.path(ProjectDir, "simulation_inputs/projection_csvs/projection_v2_old")
-simInDir_new <- file.path(ProjectDir, "simulation_inputs/projection_csvs/projection_v3")
+simInDir <- file.path(ProjectDir, "simulation_inputs/projection_csvs/projection_v3")
+simInDir_new <- file.path(ProjectDir, "simulation_inputs/projection_csvs/projection_v4/ITN")
 ScenDir <- file.path(ProjectDir, "scenarios")
 DataDir<- file.path(TeamDir, "data", "nigeria_dhs", "data_analysis")
 subDir <- file.path(DataDir, "results/LGA_maps/ITN_updated_ITN_efficacy_scenario_2_5")
@@ -25,79 +25,76 @@ source(file.path(ScriptDir, "generic_functions", "DHS_fun.R"))
 ###############################################################################
 
 
-# Read in ITN scenario files in need of updates 
-scen_dat <- read.csv(file.path(ProcessDir, "scenario_adjustment_info.csv"))
+# Read in scenarios from Bea to check 
 
-for (row in 1:nrow(scen_dat)){
-  files <- list.files(path = file.path(simInDir), pattern = "*itn_increase", full.names = TRUE)
+df <- read.csv(file.path(ScenDir, "210623_NGA_NSP_GFfr.csv")) %>%  dplyr::select(adm2, mass_llins_nsp)
+table(df$mass_llins_nsp)
+
+# Read in ITN scenario files in need of updates (focus on scenario 2 - 5)
+for (i in 1:7){
+  files <- list.files(path = file.path(simInDir), pattern = "*itn_scenario", full.names = TRUE)
+  files<- files[(grep('_increase', files))]
   df <- sapply(files, read_csv, simplify = F)
 }
 
-# Read in scenarios from Bea 
-
-PBO_scen <- read.csv(file.path(ScenDir, "NGA_NSP_GFfr_v3.csv")) %>%  dplyr::select(adm2, llins1) %>%  filter(llins1 == "PBO")
 
 
-# Read in ITN from Aadrita's work 
+# Net parameters from churcher et al 
+beta1 = 3.41
+beta2 = 5.88
+beta3 = 0.78
+tau = 0.5
+alpha1 = 0.63
+alpha2 = 4
 
-aa_ITN <- read.csv(file.path(ProjectDir, "ITN_parameter", "itn_scenario2_block_kill.csv")) %>%  filter(llins1 =="PBO") %>%  
-  mutate(LGA = ifelse(grepl("Namoda$", LGA), "Kaura-Namoda", LGA))
-summary(aa_ITN$new_block)
-
-#check if Bea's scenario files and Aadrita's ITN files match 
-check <- anti_join(PBO_scen, aa_ITN, by =c("adm2" = "LGA")) # matches 
-
-
-#now we read in aadrita's dataset and bind to scenarios to change llins1, mortality_rate, EMOD_kill_rate and block_rate 
-aa_ITN <- read.csv(file.path(ProjectDir, "ITN_parameter", "itn_scenario2_block_kill.csv")) %>%  
-mutate(LGA = ifelse(grepl("Namoda$", LGA), "Kaura-Namoda", LGA), new_block= ifelse(llins1== "Urban areas", 0.53, new_block),
-       mortality_group = ifelse(mortality >=0.5, ">=0.5 mortality group", "<0.5 mortality group")) 
-
-
-
-aa_ITN_ls <- list(aa_ITN)                   
-          
-update_ITN_fun<- function(df, df2){
-  data <- left_join(df, df2, by =c("LGA_old" = "LGA")) %>% 
-    mutate(mortality_rate = mortality, kill_rate=EMOD_kill_rate, block_initial = new_block) %>% 
-    dplyr::select(-c(mortality, EMOD_kill_rate, new_block, X, Unnamed..0))
-}
+#new kill and block rates 
+df <- df %>% map(~mutate(., PBO_mortality = expit(beta1 + ((beta2 *(mortality_rate - tau))/(1 + beta3*(mortality_rate- tau))))))
+df <- df %>%  map(~mutate(.,  kill_rate_PBO = expit(alpha1 + alpha2 * (PBO_mortality - tau))))
+df <- df  %>%  map(~mutate(., EMOD_kill_rate =kill_rate_PBO * 0.807703))
+df <- df %>%  map(~mutate(., diff_kill_rate = kill_rate - EMOD_kill_rate))                         
+                
+df <- df %>% map(~mutate(., new_block_rate = ifelse(kill_rate < 0.5, 0.65, mortality_rate * 1.28))) #checking how a scale factor of 1.28 works
+df <- df %>% map(~mutate(., diff_block_rate = block_initial - new_block_rate))
+df <- df %>% map(~mutate(., block_initial = ifelse(llins1 == 'Urban areas', new_block_rate, block_initial)))#using the newly block rates only for urban areas
+df <- df %>% map(~mutate(., kill_rate = ifelse(llins1 == 'Urban areas', EMOD_kill_rate, kill_rate)))
+df <- df %>% map(~dplyr::select(., -c(X1, X1_1, PBO_mortality, kill_rate_PBO, EMOD_kill_rate, diff_kill_rate, new_block_rate, diff_block_rate)))
 
 
-df_updated_ITN <- map2(df, aa_ITN_ls, update_ITN_fun)
 
-name_1 <- str_sub(str_split(names(df_updated_ITN[1]), "/", simplify = TRUE)[, 11], end=-5)
-name_2 <- str_sub(str_split(names(df_updated_ITN[2]), "/", simplify = TRUE)[, 11], end=-5)
-name_3 <- str_sub(str_split(names(df_updated_ITN[3]), "/", simplify = TRUE)[, 11], end=-5)
-name_4 <- str_sub(str_split(names(df_updated_ITN[4]), "/", simplify = TRUE)[, 11], end=-5)
+
+#saving files 
+name_1 <- str_sub(str_split(names(df[1]), "/", simplify = TRUE)[, 11], end=-5)
+name_2 <- str_sub(str_split(names(df[2]), "/", simplify = TRUE)[, 11], end=-5)
+name_3 <- str_sub(str_split(names(df[3]), "/", simplify = TRUE)[, 11], end=-5)
+name_4 <- str_sub(str_split(names(df[4]), "/", simplify = TRUE)[, 11], end=-5)
 
 names_ls <- list(name_1, name_2, name_3, name_4)
 
-for (i in 1:length(df_updated_ITN)) {
-  write.csv(df_updated_ITN[[i]], paste0(simInDir_new, "/", names_ls[[i]], ".csv" ))
+for (i in 1:length(df)) {
+  write.csv(df[[i]], paste0(simInDir_new, "/", names_ls[[i]], ".csv" ))
 }
 
 #write summary stats to text 
 sink(file.path(subDir, "summary_stat_ITN_kill_bloc_rates_scenario_2-5.txt"))
 cat("ITN kill rates")
 cat("\n")
-print(summary(df_updated_ITN[[1]]$kill_rate))
+print(summary(df[[1]]$kill_rate))
 cat("\n")
 cat("ITN block rates")
 cat("\n")
-print(summary(df_updated_ITN[[1]]$block_initial))
+print(summary(df[[1]]$block_initial))
 cat("\n")
 cat("ITN kill rates by group")
 cat("\n")
-tapply(df_updated_ITN[[1]]$kill_rate, df_updated_ITN[[1]]$llins1, summary)
+tapply(df[[1]]$kill_rate, df[[1]]$llins1, summary)
 cat("\n")
 cat("ITN block rates by group")
 cat("\n")
-tapply(df_updated_ITN[[1]]$block_initial, df_updated_ITN[[1]]$llins1, summary)
+tapply(df[[1]]$block_initial, df[[1]]$llins1, summary)
 cat("\n")
 cat("ITN block rates by mortality group")
 cat("\n")
-tapply(df_updated_ITN[[1]]$block_initial, df_updated_ITN[[1]]$mortality_group, summary)
+tapply(df[[1]]$block_initial, df[[1]]$mortality_rate, summary)
 sink()
 
 
@@ -116,13 +113,13 @@ sink()
 
 #map of kill rates 
 
-LGA <- clean_LGA(file.path(DataDir,"data/Nigeria_LGAs_shapefile_191016"), file.path(DataDir, "bin/names/LGA_shp_pop_names.csv"))
+LGA <- clean_LGA(file.path(DataDir,"data/shapefiles/Nigeria_LGAs_shapefile_191016"), file.path(DataDir, "bin/names/LGA_shp_pop_names.csv"))
 LGA_list<-list(LGA)
 
 
 #ITN csvs for maps 
 
-ITN_map_cv <- map(df_updated_ITN, ~filter(.x, year == 2020| year == 2021 | year == 2022))
+ITN_map_cv <- map(df, ~filter(.x, year == 2020| year == 2021 | year == 2022))
 
 name_1 <- str_sub(str_split(names(ITN_map_cv[1]), "/", simplify = TRUE)[, 11], end=-5)
 name_2 <- str_sub(str_split(names(ITN_map_cv[2]), "/", simplify = TRUE)[, 11], end=-5)
@@ -162,7 +159,7 @@ maps <- pmap(list(LGA_shp, map_val, var), map_fun)
 arrange_maps <- do.call(tmap_arrange, maps)
 arrange_maps
 
-tmap_save(tm =arrange_maps, filename = paste0(subDir,"/", Sys.Date(), "_PBO_Urban_LLINs_block_initial.pdf"), width=13, height=13, units ="in", asp=0,
+tmap_save(tm =arrange_maps, filename = paste0(subDir,"/", Sys.Date(), "_PBO_block_initial.pdf"), width=13, height=13, units ="in", asp=0,
           paper ="A4r", useDingbats=FALSE)
 
 
@@ -173,5 +170,8 @@ maps <- pmap(list(LGA_shp, map_val, var), map_fun)
 arrange_maps <- do.call(tmap_arrange, maps)
 arrange_maps
 
-tmap_save(tm =arrange_maps, filename = paste0(subDir,"/", Sys.Date(), "_PBO_Urban_LLINs_kill_rate.pdf"), width=13, height=13, units ="in", asp=0,
+tmap_save(tm =arrange_maps, filename = paste0(subDir,"/", Sys.Date(), "_PBO_kill_rate.pdf"), width=13, height=13, units ="in", asp=0,
           paper ="A4r", useDingbats=FALSE)
+
+
+
