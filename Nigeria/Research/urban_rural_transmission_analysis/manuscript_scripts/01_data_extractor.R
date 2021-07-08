@@ -26,13 +26,13 @@ SrcDir <- file.path(ProjectDir, 'src', 'Research', 'urban_rural_transmission_ana
 ### Required functions and settings
 ## -----------------------------------------
 source(file.path(SrcDir, "functions", "Nigeria functions.R"))
+options(survey.lonely.psu="adjust") # this option allows admin units with only one cluster to be analyzed
 
 
 ## ----------------------------------------------------
 ### Read in PR  data (DHS 2010, 2015, 2018)  
 ## ----------------------------------------------------
 
-options(survey.lonely.psu="adjust") # this option allows admin units with only one cluster to be analyzed
 
 dhs <- read.files(DataDir, "*NGPR.*\\.DTA", 'NGPR7AFL|NGPR71FL|NGPR61FL', read_dta)  #reads in the PR files
 
@@ -243,8 +243,19 @@ for (i in 1:length(vars)) {
 ## ----------------------------------------------------
 
 dhs <- read.files(DataDir, "*NGIR.*\\.DTA", 'NGIR7AFL', read_dta) #reads in the IR files
-dhs <- dhs %>%  map(~mutate(., wt=v005/1000000,strat=v022, id=v021)) %>%  map(~filter(., v025 == 1)) %>%  
-  map(~dplyr::select(., c(s1108ai,s1108ba,s1108bc, s1108bd, s1108bf,wt, strat, id, v001)))
+dhs <- dhs %>%  map(~mutate(., wt=v005/1000000,strat=v022, id=v021)) %>%  map(~filter(., v025 == 1)) 
+
+#create a variable for movement proxy and occupation  
+dhs <- dhs %>% map(~mutate(., trips_woman = ifelse(v167 >=99, NA, v167), #Number of trips in last 12 months 
+                                duration_travel_woman = ifelse(v168 >=9, NA, v168), #Away for more than one month in the last 12 months 
+                                agri_worker_partner = ifelse(v705 %in% c(4, 5), 1, ifelse(v705 >=98, NA, 0)), # if husband/partner is agricultural worker or not
+                                last_work_partner = ifelse(v704a >=8, NA, ifelse(v704a %in% c(1, 2), 1, 0)), # if husband/partner has worked in the last 7 days or in the last 12 months
+                                agri_worker_woman = ifelse(v717 %in% c(4, 5), 1, ifelse(v717 >=98, NA, 0)), # if woman is agricultural worker or no
+                                agri_worker_both = ifelse(agri_worker_partner ==1 & agri_worker_woman ==1, 1, 0), # if both husband and wife are agricultural workers
+                      last_work_woman = ifelse(v731 %in% c(1, 2, 3), 1, ifelse(v731 >=9, NA, 0)),#if respondent has worked in the last past year, is currently working, has a job or is on leave in the last 7 days 
+                      seasonal_work_woman = ifelse(v732 == 2, 1, ifelse(v732 ==9, NA, 0)))) #if respondent or woman is a seasonal worker or not 
+                  
+
 
 # knowledge questions recode
 
@@ -259,7 +270,8 @@ dhs[[1]]$know_vul <- ifelse(dhs[[1]]$s1108ai == 1 & dhs[[1]]$s1108ba == 1 & dhs[
 
 #proportions 
 
-vars <- c('know_vul')
+vars <- c('know_vul', 'agri_worker_partner', 'last_work_partner', 'agri_worker_woman', 'agri_worker_both', 'last_work_woman', 'seasonal_work_woman' , 'duration_travel_woman')
+
 
 
 for (i in 1:length(vars)) {
@@ -269,9 +281,26 @@ df <- dhs %>%
   map(~drop_na(.,vars[i]))
 df <- pmap(list(df,col,by), estim_prop)
 df <- plyr::ldply(df)
-write.csv(df, file =file.path(DataIn, paste0(vars[i], "_IR_DHS_10_15_18.csv")))
+write.csv(df, file =file.path(DataIn, paste0(vars[i], "_IR_DHS_18.csv")))
 }
 
+
+
+
+#median
+
+vars <- c('trips_woman')
+
+for (i in 1:length(vars)) {
+  col <- list(vars[i])
+  by <- list('v001')
+  df <- dhs %>% 
+    map(~drop_na(.,vars[i]))
+  df <- pmap(list(df,col,by), estim_median)
+  df <- plyr::ldply(df)
+  write.csv(df, file =file.path(DataIn, paste0(vars[i], "_IR_DHS_18.csv")))
+  
+}
 
 
 ## ----------------------------------------------------
@@ -334,6 +363,55 @@ for (i in 1:length(vars)) {
 
 
 
+## ----------------------------------------------------
+### estimation using the 2018 MR file 
+## ----------------------------------------------------
+
+dhs <- read.files(DataDir, "*NGMR.*\\.DTA", 'NGMR7AFL', read_dta) #reads in the IR files
+dhs <- dhs %>%  map(~mutate(., wt=mv005/1000000,strat=mv022, id=mv021)) %>%  map(~filter(., mv025 == 1)) 
+
+look_for(dhs[[1]], 'mv716')
+
+table(dhs[[1]]$mv716)
+
+#create a variable for movement proxy and occupation  
+dhs <- dhs %>% map(~mutate(., trips_man = ifelse(mv167 >=97, NA, mv167), #Number of times away from home in the last 12 months 
+                           duration_travel_man = ifelse(mv168 >=9, NA, mv168), #Away for more than one month in the last 12 months 
+                           agri_worker_man = ifelse(mv717 %in% c(4, 5), 1, ifelse(mv717 >=98, NA, 0)), # if male is agricultural worker or not
+                           last_work_man = ifelse(mv731 >=9, NA, ifelse(mv731 %in% c(1, 2), 1, 0)), # if male has worked in the last 12 months
+                           seasonal_work_man = ifelse(mv732 == 2, 1, ifelse(mv732 ==9, NA, 0)))) #if man is a seasonal worker or not 
 
 
+
+#proportions 
+
+vars <- c('agri_worker_man', 'last_work_man', 'seasonal_work_man' , 'duration_travel_man')
+
+
+
+for (i in 1:length(vars)) {
+  col <- list(vars[i])
+  by <- list('mv001')
+  df <- dhs %>% 
+    map(~drop_na(.,vars[i]))
+  df <- pmap(list(df,col,by), estim_prop)
+  df <- plyr::ldply(df)
+  write.csv(df, file =file.path(DataIn, paste0(vars[i], "_MR_DHS_18.csv")))
+}
+
+
+#median
+
+vars <- c('trips_man')
+
+for (i in 1:length(vars)) {
+  col <- list(vars[i])
+  by <- list('mv001')
+  df <- dhs %>% 
+    map(~drop_na(.,vars[i]))
+  df <- pmap(list(df,col,by), estim_median)
+  df <- plyr::ldply(df)
+  write.csv(df, file =file.path(DataIn, paste0(vars[i], "_MR_DHS_18.csv")))
+  
+}
 

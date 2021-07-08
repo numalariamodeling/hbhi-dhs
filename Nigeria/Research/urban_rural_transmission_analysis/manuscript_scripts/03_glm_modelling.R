@@ -1,17 +1,9 @@
+rm(list=ls())
+#memory.limit(size = 50000)
 
-x <- c("tidyverse","INLA", "ggplot2", "ggpubr", "inlabru", "rgdal", "sp", "sf", "tmap", 'paletteer', 'cowplot', 
-       'gridExtra', 'lme4', 'reshape2', 'Greg')
-
-
-
-
-lapply(x, library, character.only = TRUE) #applying the library function to packages
-
-options(repr.plot.width = 14, repr.plot.height = 8)
-
-###################################################################################
-####Directories
-###################################################################################
+## -----------------------------------------
+### Paths
+## -----------------------------------------
 
 Drive <- file.path(gsub("[\\]", "/", gsub("Documents", "", Sys.getenv("HOME"))))
 NuDir <- file.path(Drive, "Box", "NU-malaria-team")
@@ -19,19 +11,55 @@ NGDir <-file.path(NuDir, "data", "nigeria_dhs",  "data_analysis")
 DataDir <-file.path(NGDir, "data")
 ResultDir <-file.path(NGDir, "results")
 BinDir <- file.path(NGDir, "bin")
-SrcDir <- file.path(NGDir, "src", "DHS")
-VarDir <- file.path(SrcDir, "1_variables_scripts")
+DHSData <- file.path(DataDir, 'DHS')
+DataIn <- file.path(DHSData, "Computed_cluster_information", 'urban_malaria_covariates')
 ProjectDir <- file.path(NuDir, "projects", "hbhi_nigeria")
-PresentDir<-file.path(NuDir, "presentations")
-Personal_P_Dir <- file.path(NuDir, "presentations", "team member archive_Ifeoma", "210409_EPI_seminar", "pictures")
-Sem_Dir <- file.path(NuDir, "presentations", "team member archive_Ifeoma", "210409_EPI_seminar")
-Man_Dir <- file.path(ProjectDir, "project_notes", "publication", "Urban-rural determinants of malaria infection in Nigeria", "Illustrations")
+SrcDir <- file.path(NGDir, 'src', 'Research', 'urban_rural_transmission_analysis')
+
+
+# ------------------------------------------
+### Required functions and settings
+## -----------------------------------------
+source(file.path(SrcDir, "functions", "model functions.R"))
+
+
+
+# ------------------------------------------
+### Data cleaning  
+## -----------------------------------------
+
+#DHS data 
+
+files <- list.files(path = file.path(DataIn, 'DHS_survey_extract') , pattern = '.csv', full.names = TRUE, recursive = TRUE)
+files<- files[-grep('_0m_|_1000m_|_3000m_|_4000m_|Temp_covereates|DHS_18.csv|pop_density_|p_test_lagos_|pop_density_2000m_buffer_DHS_10_15_18.csv|pop_density_2km_buffer_DHS_10_15_18_30sec|building_density|elevation_', files)]
+df <-sapply(files, read.csv, simplify = F)
+
+df <- df %>% map(~dplyr::select(., -X)) %>%  map_if(~ all(c('X.1') %in% colnames(.x)),~dplyr::select(., -X.1)) %>% 
+  map_if(~ all(c('se') %in% colnames(.x)),~dplyr::select(., -se)) %>% 
+  map_if(~ all(c('ci_l') %in% colnames(.x)),~dplyr::select(., -ci_l)) %>% 
+  map_if(~ all(c('ci_u') %in% colnames(.x)),~dplyr::select(., -ci_u)) %>% 
+  map_if(~ all(c('ID') %in% colnames(.x)), ~rename(., v001 = ID)) %>%  
+  map_if(~ all(c('hv001') %in% colnames(.x)), ~rename(., v001 = hv001))
+
+
+df <- df %>%  map(~mutate(., dhs_year = str_split(.id, "_", simplify = T)[, 4]) ) %>%  map(~dplyr::select(., -.id))
+
+df<- df[order(sapply(df,nrow),decreasing = T)]
+
+df <- df %>%  purrr::reduce(left_join, by = c('dhs_year', 'v001'))
+
+
+#geospatial covariates 
+
 
 
 ###################################################################################
 ####Loading data
 ###################################################################################
 # Load pre-clustered data:
+
+
+
 
 
 # Load pre-clustered data:

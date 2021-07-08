@@ -95,7 +95,7 @@ values <-c("#5a5757", '#913058', "#F6851F", "#00A08A", "#D61B5A", "#5393C3", "#9
 
 shapes <- c(NA, NA, NA, NA, NA,NA, NA, NA, 19)
 
-
+pin<- pretty(df_gts$incidence_all_ages)
 incidence<-ggplot(df_gts, aes(x = year,  y = incidence_all_ages, color =scenario, fill =scenario)) + 
     geom_ribbon(data = filter(df, !(scenario %in% c('GTS targets based on 2015 modeled estimate'))), 
                 aes(ymin =incidence_all_ages_min, ymax =incidence_all_ages_max), alpha = .3, color = NA)+
@@ -117,9 +117,10 @@ incidence<-ggplot(df_gts, aes(x = year,  y = incidence_all_ages, color =scenario
           axis.ticks.x = element_blank(),
           axis.ticks.y = element_blank(),
           strip.text.x = element_text(size = 7.5, colour = "black", face = "bold"))+
-    scale_y_continuous(expand = c(0, 0), limits = c(0,NA)) 
+    scale_y_continuous(expand = c(0, 0), breaks =pin,  limits = c(range(pin))) 
 
 
+pin<- pretty(df_gts$death_rate_mean_all_ages)
 death<-ggplot(df_gts, aes(x = year,  y = death_rate_mean_all_ages, color =scenario, fill =scenario)) + 
   geom_ribbon(data = filter(df, !(scenario %in% c('GTS targets based on 2015 modeled estimate'))), 
               aes(ymin =death_rate_mean_all_ages_min, ymax =death_rate_mean_all_ages_max), alpha = .3, color = NA)+
@@ -141,13 +142,13 @@ death<-ggplot(df_gts, aes(x = year,  y = death_rate_mean_all_ages, color =scenar
         axis.ticks.x = element_blank(),
         axis.ticks.y = element_blank(),
         strip.text.x = element_text(size = 7.5, colour = "black", face = "bold"))+
-  scale_y_continuous(expand = c(0, 0), limits = c(0,NA)) 
+  scale_y_continuous(expand = c(0, 0), breaks=pin, limits = c(range(pin))) 
 
 
 
 
 
-line_plot <- function(y,ylab, ymin, ymax, title) {
+line_plot <- function(y,ylab, ymin, ymax, title, pin) {
   p<-ggplot(df, aes(x = year, y = y, color =scenario, fill =scenario)) + 
     geom_ribbon(aes(ymin =ymin, ymax =ymax), alpha = .3, colour = NA)  +  
     geom_line(size =0.3)+
@@ -167,7 +168,7 @@ line_plot <- function(y,ylab, ymin, ymax, title) {
           axis.ticks.x = element_blank(),
           axis.ticks.y = element_blank(),
           strip.text.x = element_text(size = 7.5, colour = "black", face = "bold"))+
-    scale_y_continuous(expand = c(0, 0), limits = c(0,NA)) +
+    scale_y_continuous(expand = c(0, 0), breaks = pin, limits = c(range(pin))) +
     labs(x = '', y = ylab, col= "INTERVENTION SCENARIOS", title =title)
 }
 
@@ -180,13 +181,13 @@ u5_title <- expression(paste(atop(textstyle(bold("children under the age of five
                                     textstyle("annual average")))))
 
 #plots 
-pfpr <- line_plot(df$PfPR_all_ages, all_ages_title, df$PfPR_all_ages_min, df$PfPR_all_ages_max, 'Parasite Prevalence')
+pfpr <- line_plot(df$PfPR_all_ages, all_ages_title, df$PfPR_all_ages_min, df$PfPR_all_ages_max, 'Parasite Prevalence', pretty(df$PfPR_all_ages))
 
-u5_pfpr <- line_plot(df$PfPR_U5, u5_title, df$PfPR_U5_min, df$PfPR_U5_max, '')
+u5_pfpr <- line_plot(df$PfPR_U5, u5_title, df$PfPR_U5_min, df$PfPR_U5_max, '', pretty(df$PfPR_U5))
 
-u5_incidence <- line_plot(df$incidence_U5,  "U5 annual incidence per 1000", df$incidence_U5_min, df$incidence_U5_max, '')
+u5_incidence <- line_plot(df$incidence_U5,  "U5 annual incidence per 1000", df$incidence_U5_min, df$incidence_U5_max, '', pretty(df$incidence_U5))
 
-death_U5 <- line_plot(df$death_rate_mean_U5, "U5 annual death per 1000", df$death_rate_mean_U5_min, df$death_rate_mean_U5_max, '')
+death_U5 <- line_plot(df$death_rate_mean_U5, "U5 annual death per 1000", df$death_rate_mean_U5_min, df$death_rate_mean_U5_max, '', pretty(df$death_rate_mean_U5))
 
 legend <- get_legend(
   incidence + 
