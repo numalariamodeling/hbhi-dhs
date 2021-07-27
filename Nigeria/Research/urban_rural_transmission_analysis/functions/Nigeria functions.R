@@ -70,8 +70,36 @@ get_crs <- function(df, raster){
   dhs <- spTransform(x = df, CRSobj = crs(raster))
 }
 
+
+
 extract_fun <- function(raster, dhs, buffer){
-  clu_val<-raster::extract(raster,dhs, buffer = buffer, fun = mean, df =TRUE) 
-  
+  clu_val<-raster::extract(raster,dhs, buffer = buffer, fun = mean, df =TRUE) %>%
+    mutate(dhs_year = dhs$DHSYEAR)%>%
+    mutate(hv001 = dhs$DHSCLUST) 
 }
 
+# extract_fun2 <- function(raster, dhs, buffer){
+#   clu_val<-raster::extract(raster,dhs, buffer = buffer, fun = mean, df =TRUE) %>% mutate(dhs_year = dhs$DHSYEAR)%>% 
+#     mutate(hv001 = dhs$DHSCLUST)%>% rename_at(3,~"varname")%>% subset(select = c(4, 2, 3, 5))
+#   
+# }
+# 
+# extrclean.fun <- function(csv, varname){
+#   csv 
+#   dff <- csv
+#   dff %>% rename_at(2,~varname)
+# }
+# 
+# extrclean.fun2 <- function(csv, varname){
+#   csv 
+#   dff <- csv
+#   dff %>% rename_at(3,~varname)
+# }
+
+######## Survey monthS fxn shopefile, 1 for 2010, 2 for 2015, and 3 for 2018
+# srvymnth.fun <- function(list_id, srvymnth){
+#   hh_survey <- dhs_hh[[3]]%>% filter(hv025 ==1)
+#   hh_survey <- hh_survey[!duplicated(hh_survey$hv001),]
+#   hh_survey <- hh_survey[,c("hv001", "hv006")] %>% rename_at(1,~"DHSCLUST")%>% filter(hv006 == 8)
+#   dhs_2018_aug = merge(dhs[[3]], hh_survey)  %>% st_as_sf()
+# }

@@ -1,7 +1,6 @@
 ## These scripts are used to extract cluster level data and variables for urban settings in Nigeria 
-
 rm(list=ls())
-#memory.limit(size = 50000)
+memory.limit(size = 50000)
 
 ## -----------------------------------------
 ### Paths
@@ -13,7 +12,7 @@ NuDir <- file.path(Drive, "Box", "NU-malaria-team")
 ProjectDir <- file.path(NuDir, 'data', 'nigeria_dhs' , 'data_analysis')
 DataDir <- file.path(ProjectDir, "data")
 DHSData <- file.path(DataDir, 'DHS')
-DataIn <- file.path(DHSData, "Computed_cluster_information", 'urban_malaria_covariates')
+DataIn <- file.path(DHSData, "Computed_cluster_information", 'urban_malaria_covariates', 'DHS_survey_extract')
 Rdata <- file.path(DataDir, 'DHS', 'Subset_data', "urban_malaria_rdata")
 ResultDir <-file.path(ProjectDir, "results")
 BinDir <- file.path(ProjectDir, "bin")
@@ -38,7 +37,7 @@ dhs <- read.files(DataDir, "*NGPR.*\\.DTA", 'NGPR7AFL|NGPR71FL|NGPR61FL', read_d
 
 
 
-
+table(dhs[[1]]$hv215)
 
 ## -----------------------------------------
 ### Data processing 
@@ -48,14 +47,17 @@ dhs <- read.files(DataDir, "*NGPR.*\\.DTA", 'NGPR7AFL|NGPR71FL|NGPR61FL', read_d
 dhs<- dhs %>% map(~mutate(., wealth = ifelse(hv270 <4, 0, 1),
                             floor_type = ifelse(hv213 >= 98, NA, ifelse(hv213 %in% c(30, 31, 33, 34, 35),1, 0)),
                                               wall_type = ifelse(hv214 >= 98, NA , ifelse (hv214 %in% c(30, 31, 33, 34,35),1, 0)),
-                            roof_type = ifelse(hv215 >= 98, NA, ifelse(hv215 %in% c(30, 31, 33, 34,35, 36),1, 0)),
+                            roof_type = ifelse(hv215 >= 98, NA, ifelse(hv215 %in% c(31),1, 0)),
                             housing_q = ifelse(floor_type == 1 & wall_type == 1 & roof_type == 1,1, 0),
-                            sex = ifelse(hc27 == 1,0, 1), 
+                            all_female_sex = ifelse(hc27 == 1,0, 1), 
+                            female_child_sex = all_female_sex,
                             net_use = ifelse(hml12 %in% c(1,2), 1,0),
                             wt=hv005/1000000,strat=hv022,
                             id=hv021, num_p=1,
                             edu_a = ifelse(hv106 %in% c(0, 1, 2), 0,ifelse(hv106 >= 8, NA, ifelse(hv106 == 2|3, 1, NA))),
                             age = ifelse(hv105 >= 98, NA, hv105),
+                            median_age = age,
+                            mean_age =age,
                             household_size = hv013,
                             p_test = ifelse(hml32 > 1, NA, hml32),
                             U5_pop = ifelse(hc1 %in% c(0:59), 1, 0),
@@ -84,8 +86,9 @@ pfpr_df <- dhs %>% map(~filter(., hv042 == 1 & hv103 == 1 & hc1 %in% c(6:59) & h
 
 #proportions 
 
-vars <- c('net_use', 'edu_a', 'wealth', 'housing_q', 'floor_type', 'wall_type', 'roof_type', 'sex', 'U5_pop', 'preg_women')
+vars <- c('net_use', 'edu_a', 'wealth', 'housing_q', 'floor_type', 'wall_type', 'roof_type', 'all_female_sex', 'U5_pop', 'preg_women')
 
+vars<- c('roof_type')
 for (i in 1:length(vars)) {
   col <- list(vars[i])
   by <- list('hv001')
@@ -93,6 +96,7 @@ for (i in 1:length(vars)) {
     map(~drop_na(.,vars[i]))
   df <- pmap(list(df,col,by), estim_prop)
   df <- plyr::ldply(df)
+  df[, vars[i]]<- df[, vars[i]]*100
   write.csv(df, file =file.path(DataIn, paste0(vars[i], "_all_DHS_PR_10_15_18.csv")))
   
 }
@@ -100,7 +104,7 @@ for (i in 1:length(vars)) {
 
 #mean
 
-vars <- c('age')
+vars <- c('mean_age')
 
 for (i in 1:length(vars)) {
   col <- list(vars[i])
@@ -117,7 +121,7 @@ for (i in 1:length(vars)) {
 
 #median
 
-vars <- c('age', 'household_size')
+vars <- c('median_age', 'household_size')
 
 for (i in 1:length(vars)) {
   col <- list(vars[i])
@@ -162,15 +166,17 @@ for (i in 1:length(vars)){
 
 pfpr_df<- pfpr_df %>%  map(~mutate(., net_use_child = net_use))
 
-vars <- c('sex', 'net_use_child', 'p_test')
+vars <- c('female_child_sex', 'net_use_child', 'p_test')
+
 
 for (i in 1:length(vars)) {
   col <- list(vars[i])
   by <- list('hv001')
   df <-  pfpr_df %>% 
-    map(~drop_na(.,vars[i])) #%>%  map(~filter(., state == 'lagos'))
+    map(~drop_na(.,vars[i])) 
   df <- pmap(list(df,col,by), estim_prop)
   df <- plyr::ldply(df)
+  df[, vars[i]]<- df[, vars[i]]*100
   write.csv(df, file =file.path(DataIn, paste0(vars[i], "_PfPR_DHS_10_15_18.csv")))
   
 }
@@ -223,7 +229,8 @@ for (i in 1:length(vars)) {
       map(~drop_na(.,vars[i]))
     df <- pmap(list(df,col,by), estim_prop)
     df <- plyr::ldply(df)
-    write.csv(df, file =file.path(DataIn, paste0(vars[i], "_PfPR_DHS_10_15_18.csv")))
+    df[, vars[i]]<- df[, vars[i]]*100
+    write.csv(df, file =file.path(DataIn, paste0(vars[i], "_KR_DHS_10_15_18.csv")))
     
   }else{
   col <- list(vars[i])
@@ -232,7 +239,8 @@ for (i in 1:length(vars)) {
     map(~drop_na(.,vars[i]))
   df <- pmap(list(df,col,by), estim_prop)
   df <- plyr::ldply(df)
-  write.csv(df, file =file.path(DataIn, paste0(vars[i], "_PfPR_DHS_10_15_18.csv")))
+  df[, vars[i]]<- df[, vars[i]]*100
+  write.csv(df, file =file.path(DataIn, paste0(vars[i], "_KR_DHS_10_15_18.csv")))
   }
 }
 
@@ -281,6 +289,7 @@ df <- dhs %>%
   map(~drop_na(.,vars[i]))
 df <- pmap(list(df,col,by), estim_prop)
 df <- plyr::ldply(df)
+df[, vars[i]]<- df[, vars[i]]*100
 write.csv(df, file =file.path(DataIn, paste0(vars[i], "_IR_DHS_18.csv")))
 }
 
@@ -301,6 +310,61 @@ for (i in 1:length(vars)) {
   write.csv(df, file =file.path(DataIn, paste0(vars[i], "_IR_DHS_18.csv")))
   
 }
+
+
+## ----------------------------------------------------
+### estimation using the 2018 MR file 
+## ----------------------------------------------------
+
+dhs <- read.files(DataDir, "*NGMR.*\\.DTA", 'NGMR7AFL', read_dta) #reads in the IR files
+dhs <- dhs %>%  map(~mutate(., wt=mv005/1000000,strat=mv022, id=mv021)) %>%  map(~filter(., mv025 == 1)) 
+
+look_for(dhs[[1]], 'mv716')
+
+table(dhs[[1]]$mv716)
+
+#create a variable for movement proxy and occupation  
+dhs <- dhs %>% map(~mutate(., trips_man = ifelse(mv167 >=97, NA, mv167), #Number of times away from home in the last 12 months 
+                           duration_travel_man = ifelse(mv168 >=9, NA, mv168), #Away for more than one month in the last 12 months 
+                           agri_worker_man = ifelse(mv717 %in% c(4, 5), 1, ifelse(mv717 >=98, NA, 0)), # if male is agricultural worker or not
+                           last_work_man = ifelse(mv731 >=9, NA, ifelse(mv731 %in% c(1, 2), 1, 0)), # if male has worked in the last 12 months
+                           seasonal_work_man = ifelse(mv732 == 2, 1, ifelse(mv732 ==9, NA, 0)))) #if man is a seasonal worker or not 
+
+
+
+#proportions 
+
+vars <- c('agri_worker_man', 'last_work_man', 'seasonal_work_man' , 'duration_travel_man')
+
+
+
+for (i in 1:length(vars)) {
+  col <- list(vars[i])
+  by <- list('mv001')
+  df <- dhs %>% 
+    map(~drop_na(.,vars[i]))
+  df <- pmap(list(df,col,by), estim_prop)
+  df <- plyr::ldply(df)
+  df[, vars[i]]<- df[, vars[i]]*100
+  write.csv(df, file =file.path(DataIn, paste0(vars[i], "_MR_DHS_18.csv")))
+}
+
+
+#median
+
+vars <- c('trips_man')
+
+for (i in 1:length(vars)) {
+  col <- list(vars[i])
+  by <- list('mv001')
+  df <- dhs %>% 
+    map(~drop_na(.,vars[i]))
+  df <- pmap(list(df,col,by), estim_median)
+  df <- plyr::ldply(df)
+  write.csv(df, file =file.path(DataIn, paste0(vars[i], "_MR_DHS_18.csv")))
+  
+}
+
 
 
 ## ----------------------------------------------------
@@ -362,56 +426,4 @@ for (i in 1:length(vars)) {
 }
 
 
-
-## ----------------------------------------------------
-### estimation using the 2018 MR file 
-## ----------------------------------------------------
-
-dhs <- read.files(DataDir, "*NGMR.*\\.DTA", 'NGMR7AFL', read_dta) #reads in the IR files
-dhs <- dhs %>%  map(~mutate(., wt=mv005/1000000,strat=mv022, id=mv021)) %>%  map(~filter(., mv025 == 1)) 
-
-look_for(dhs[[1]], 'mv716')
-
-table(dhs[[1]]$mv716)
-
-#create a variable for movement proxy and occupation  
-dhs <- dhs %>% map(~mutate(., trips_man = ifelse(mv167 >=97, NA, mv167), #Number of times away from home in the last 12 months 
-                           duration_travel_man = ifelse(mv168 >=9, NA, mv168), #Away for more than one month in the last 12 months 
-                           agri_worker_man = ifelse(mv717 %in% c(4, 5), 1, ifelse(mv717 >=98, NA, 0)), # if male is agricultural worker or not
-                           last_work_man = ifelse(mv731 >=9, NA, ifelse(mv731 %in% c(1, 2), 1, 0)), # if male has worked in the last 12 months
-                           seasonal_work_man = ifelse(mv732 == 2, 1, ifelse(mv732 ==9, NA, 0)))) #if man is a seasonal worker or not 
-
-
-
-#proportions 
-
-vars <- c('agri_worker_man', 'last_work_man', 'seasonal_work_man' , 'duration_travel_man')
-
-
-
-for (i in 1:length(vars)) {
-  col <- list(vars[i])
-  by <- list('mv001')
-  df <- dhs %>% 
-    map(~drop_na(.,vars[i]))
-  df <- pmap(list(df,col,by), estim_prop)
-  df <- plyr::ldply(df)
-  write.csv(df, file =file.path(DataIn, paste0(vars[i], "_MR_DHS_18.csv")))
-}
-
-
-#median
-
-vars <- c('trips_man')
-
-for (i in 1:length(vars)) {
-  col <- list(vars[i])
-  by <- list('mv001')
-  df <- dhs %>% 
-    map(~drop_na(.,vars[i]))
-  df <- pmap(list(df,col,by), estim_median)
-  df <- plyr::ldply(df)
-  write.csv(df, file =file.path(DataIn, paste0(vars[i], "_MR_DHS_18.csv")))
-  
-}
 

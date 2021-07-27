@@ -88,7 +88,7 @@ for(i in 1:length(cm_list)){
   m <- gamlss(comboACT ~ year, data=cm_list[[i]], family = BEZI)
   model_list <- append(model_list, list(m))
   
-  eq <- paste0('logit(E(cm coverage)) =', " ", round(coef(m)[1], 2), " + ", round(coef(m)[2], 2), ' year ', "\n",
+  eq <- paste0("\n",'logit(E(cm coverage)) =', " ", round(coef(m)[1], 2), " + ","\n", round(coef(m)[2], 2), ' year ', "\n",
                'log(sigma) =', " ", round(unname(m$sigma.coefficients), 2), "\n",
                'logit(nu) =', round(unname(m$nu.coefficients), 2))
   eqn_list <- append(eqn_list, list(as.character(as.expression(eq))))
@@ -114,7 +114,7 @@ colnames(eqn_cm)[1] <- 'rep_DS'
 gp<-ggplot(data=cm_3, aes(year, comboACT)) +
   geom_point(alpha=0.1, color ='black')+ facet_wrap(~rep_DS)+
   geom_line(data = predict_cm, aes(year, comboACT), color = 'red', size =1)+ 
-  geom_text(data = eqn_cm, size = 3, aes(label =V1,y = 0.76, x = 2015.5)) +
+  geom_text(data = eqn_cm, size = 3, aes(label =V1,y = 0.73, x = 2015.5)) +
   scale_x_continuous(breaks = c(2013, 2015, 2017))+
   ylab("Case Management Coverage")+
   theme_minimal()+
@@ -123,7 +123,7 @@ gp<-ggplot(data=cm_3, aes(year, comboACT)) +
         axis.ticks.x = element_line(size = 0.5, colour = "black"),
         axis.ticks.y = element_line(size = 0.5, colour = "black"))
 
-
+gp
 
  
 ggsave(file=paste0(ModelparamDir, '/',  'beta_model_fit_', Sys.Date(),"_", ".pdf"), gp, scale=1.5, width=11, height=8)

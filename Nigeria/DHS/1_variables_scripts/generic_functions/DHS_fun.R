@@ -12,11 +12,7 @@ if (!("INLA" %in% installed.packages()[, 'Package'])){
 }
 
 
-x <- c("tidyverse", "survey", "haven", "ggplot2", "purrr", "stringr", "sp", "rgdal", "raster",
-       "lubridate", "RColorBrewer","sf", "shinyjs", "tmap", "knitr", "labelled", "plotrix", "arules", "foreign",
-       "fuzzyjoin", "splitstackshape", "ggpubr", "nngeo")
-
-lapply(x, library, character.only = TRUE) #applying the library function to packages
+lapply(list.of.packages , library, character.only = TRUE) #applying the library function to packages
 
 
 options(survey.lonely.psu="adjust") # this option allows admin units with only one cluster to be analyzed

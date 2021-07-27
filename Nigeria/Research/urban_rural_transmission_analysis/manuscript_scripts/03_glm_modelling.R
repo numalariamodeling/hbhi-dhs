@@ -9,20 +9,28 @@ Drive <- file.path(gsub("[\\]", "/", gsub("Documents", "", Sys.getenv("HOME"))))
 NuDir <- file.path(Drive, "Box", "NU-malaria-team")
 NGDir <-file.path(NuDir, "data", "nigeria_dhs",  "data_analysis")
 DataDir <-file.path(NGDir, "data")
+SrcDir <- file.path(NGDir, 'src', 'Research', 'urban_rural_transmission_analysis')
 ResultDir <-file.path(NGDir, "results")
 BinDir <- file.path(NGDir, "bin")
 DHSData <- file.path(DataDir, 'DHS')
 DataIn <- file.path(DHSData, "Computed_cluster_information", 'urban_malaria_covariates')
-ProjectDir <- file.path(NuDir, "projects", "hbhi_nigeria")
-SrcDir <- file.path(NGDir, 'src', 'Research', 'urban_rural_transmission_analysis')
+ProjectDir <- file.path(NuDir, "projects", "urban_malaria")
+manuscript_dir <- file.path(ProjectDir,'manuscript')
+illustrations_dir <- file.path(manuscript_dir,'illustrations')
 
+ifelse(!dir.exists(file.path(DataIn, "cleaned_cluster_covariates_all")), 
+       dir.create(file.path(DataIn, "cleaned_cluster_covariates_all")), FALSE)
+
+cleandatDir <- file.path(DataIn, 'cleaned_cluster_covariates_all')
 
 # ------------------------------------------
 ### Required functions and settings
 ## -----------------------------------------
 source(file.path(SrcDir, "functions", "model functions.R"))
-
-
+library(corrplot)
+library(Hmisc)
+library(ggcorrplot)
+library(BAS)
 
 # ------------------------------------------
 ### Data cleaning  
@@ -50,49 +58,135 @@ df <- df %>%  purrr::reduce(left_join, by = c('dhs_year', 'v001'))
 
 
 #geospatial covariates 
+files <- list.files(path = file.path(DataIn, 'geospatial_covariates') , pattern = '.csv', full.names = TRUE, recursive = FALSE)
+files<- files[-grep('_0m_|_1000m_|_3000m_|_4000m_|pop_density_FB', files)]
+df_geo <-sapply(files, read.csv, simplify = F) %>% map(~dplyr::select(., -.id)) 
+ 
+df_geo <- df_geo %>% map_if(~ all(c('hv001') %in% colnames(.x)), ~rename(., v001 = hv001))
+
+
+df_geo<- df_geo[order(sapply(df_geo,nrow),decreasing = T)]
+
+df_geo <- df_geo %>%  purrr::reduce(left_join, by = c('dhs_year', 'v001')) %>%  mutate(dhs_year = as.character(dhs_year))
+
+
+#joining all datasets together 
+
+df <- df %>%  left_join(df_geo, by = c('dhs_year', 'v001')) 
+
+write.csv(df, paste0(cleandatDir, '/all_cluster_variables_urban_malaria.csv'))
 
 
 
-###################################################################################
-####Loading data
-###################################################################################
-# Load pre-clustered data:
+# ------------------------------------------
+### Check for collinearity 
+## -----------------------------------------
+x <- df %>% dplyr::select(-c(p_test, interview_month, dhs_year, shstate, v001, region)) #removes categorical variables and malaria prevalence 
+                             
+#replace nas with their means 
+for(i in 1:ncol(x)){
+  x[is.na(x[,i]), i] <- mean(x[,i], na.rm = TRUE)
+}
+
+#correlation matrix 
+corr <- round(cor(x), 1)
+
+# Compute a matrix of correlation p-values
+p.mat <- cor_pmat(x)
+
+
+corrPlot<- ggcorrplot(corr, lab = TRUE, legend.title = "Correlation coefficient")+ 
+  theme(panel.border = element_rect(colour = "black", fill=NA, size=0.9))
+ggsave(paste0(illustrations_dir, '/modeling_plots/correlation_all.pdf'), plot =corrPlot, height = 13, width = 13)
+
+corrPlot<- ggcorrplot(corr, lab=TRUE, legend.title = "Correlation coefficient")+ 
+  theme(panel.border = element_rect(colour = "black", fill=NA, size=0.9))
+ggsave(paste0(illustrations_dir, '/modeling_plots/correlation_all_no_label.pdf'), plot =corrPlot, height = 13, width = 13)
+
+
+
+#correlation with reduced data 
+x_reduced <- x %>% dplyr::select(-c(mean_age, net_use, housing_2000_2000m,housing_q, minutes_walking_healthcare_2000m, 
+                                    minutes_travel_metre_2015_2000m, female_child_sex, minutes_travel_metre_2019_2000m, floor_type, wall_type)) #removes highly correlated variables
+
+
+#correlation matrix 
+corr <- round(cor(x_reduced), 1)
+
+# Compute a matrix of correlation p-values
+p.mat <- cor_pmat(x_reduced)
+
+
+corrPlot<- ggcorrplot(corr, lab = TRUE, legend.title = "Correlation coefficient")+ 
+  theme(panel.border = element_rect(colour = "black", fill=NA, size=0.9))
+ggsave(paste0(illustrations_dir, '/modeling_plots/correlation_reduced.pdf'), plot =corrPlot, height = 13, width = 13)
+
+corrPlot<- ggcorrplot(corr, legend.title = "Correlation coefficient")+ 
+  theme(panel.border = element_rect(colour = "black", fill=NA, size=0.9))
+ggsave(paste0(illustrations_dir, '/modeling_plots/correlation_reduced_no_label.pdf'), plot =corrPlot, height = 13, width = 13)
+
+
+
+
+# ------------------------------------------
+### Make data 
+## -----------------------------------------
+prevalence <- ifelse(df$p_test>=0.1,1, 0)
+
+df_x <- df %>%  dplyr::select(interview_month, dhs_year, shstate, region)
+
+df_x$dhs_year<-as.factor(df_x$dhs_year)
+df_x$shstate<-as.factor(df_x$shstate)
+df_x$region<-as.factor(df_x$region)
+df_x$region<-as.factor(df_x$region)
+
+df <- cbind(df_x, x, prevalence)
+
+#removing all collinear variables, malaria prevalence and cluster id
+x_reduced <- df %>% dplyr::select(-c(mean_age, net_use, housing_2000_2000m,housing_q, minutes_walking_healthcare_2000m, 
+                                    minutes_travel_metre_2015_2000m, female_child_sex, minutes_travel_metre_2019_2000m, floor_type, wall_type)) #removes highly correlated variables
+
+
+df<- cbind(df_x, x_reduced, prevalence)
 
 
 
 
 
-# Load pre-clustered data:
-clu_variales_10_18 <- read.csv("Nigeria_2010_2018_clustered_final_dataset.csv", 
-                               header = T, sep = ',')
 
-urbandatasetsss <- clu_variales_10_18 %>% filter(Rural_urban == 1)
+# ------------------------------------------
+### try bas package 
+## -----------------------------------------
 
-
-#filtering by residence type
-urbandataset <- clu_variales_10_18 %>% filter(Rural_urban == 1) %>%  
-  dplyr::select(hv001,p_test, wealth_2, u5_prop, preg,edu_a, hh_size, ACT_use_u5,pop_den,
-                hh_members_age, sex_f, data_source, humidindex, Rural_urban, annual_precipitation,housing_qua, net_use, build_count, state, pop_count, housing_qua) %>% 
-  na.omit()
-
-table(urbandataset$data_source)
-
-#data cleaning
-
-missing_values <- sapply(urbandataset, function(x) sum(is.na(x)))
-summary(urbandataset$pop_count)
-
-urbandataset <- urbandataset %>% filter(annual_precipitation>=0, pop_den != -9999)
-table(urbandataset$data_source)
+BAS_model = bas.glm(prevalence ~ ., data=df,
+                   family=binomial(),
+                   method="MCMC", n.models=20000,
+                   betaprior=bic.prior(n = nrow(df)),
+                   modelprior=uniform())
 
 
-###################################################################################
-####glm
-###################################################################################
+summary(BAS_model)
 
-############################   Univariate Analysis ##################################
 
-#binalize dependent variable
+coef <- coef(BAS_model)
+
+
+#maybe we imput?//
+for(i in 1:ncol(x_reduced)){
+  if (is.numeric(x_reduced)){
+    x_reduced[is.na(x_reduced[,i]), i] <- mean(x_reduced[,i], na.rm = TRUE)}
+}
+
+
+
+# ------------------------------------------
+### try INLA with BMA and beta regression
+## -----------------------------------------
+
+
+
+
+
 
 
 urbandataset$y <- ifelse(urbandataset$p_test < 0.1, 0,1) # delete this
