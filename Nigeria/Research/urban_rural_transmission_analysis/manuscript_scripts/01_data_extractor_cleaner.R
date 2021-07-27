@@ -532,15 +532,16 @@ raster<-sapply(files, raster, simplify = F)
 
 
 for (i in 1:length(vars)) {
-  var_name <- paste0('access_to_cities_', as.character(vars[[i]]), 'm')
+  var_name <- paste0('access_to_cities_', as.character(2000), 'm')
   df <- map2(dhs, raster, get_crs)
-  df <- pmap(list(raster, df, vars[[i]]), extract_fun)
+  df <- pmap(list(raster, df, 2000), extract_fun)
   df <- df %>%  map(~rename_with(., .fn=~paste0(var_name), .cols = contains('2015_accessibility')))
   df <- plyr::ldply(df)%>% dplyr::select(-c(ID))
   write.csv(df, file = file.path(GeoDir, paste0('access_to_cities_', as.character(vars[i]), 
                                                 'm_buffer', "_DHS_10_15_18.csv")),row.names = FALSE)
 }
 
+hist(df$access_to_cities_2000m)
 
 #minutes to travel one metre 2015, friction decompressed
 
