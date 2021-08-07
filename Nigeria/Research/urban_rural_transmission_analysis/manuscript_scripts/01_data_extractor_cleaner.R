@@ -710,19 +710,21 @@ for (i in 1:length(vars)) {
 
 dhs_hh <- read.files(DataDir, "*NGPR.*\\.DTA", 'NGPR7AFL|NGPR71FL|NGPR61FL', read_dta)  #reads in the PR files
 
-dhs_hh <- dhs_hh %>% map(~filter(., hv025 == 1)) %>%  map(~dplyr::select(., hv001, hv006, hv007)) %>%  map(~distinct(.,))
+dhs_hh <- dhs_hh %>% map(~filter(., hv025 == 1)) %>%  map(~dplyr::select(., hv001, hv006, hv007)) %>%  map(~distinct(.,)) 
 
-dhs_2010 <- dhs_hh[[1]] %>% group_split(hv006) %>% setNames(paste0(unique(dhs_hh[[1]]$hv006), '_', unique(dhs_hh[[1]]$hv007)))
+dhs_2010 <- left_join(st_as_sf(dhs[[1]]), dhs_hh[[1]], by = c("DHSCLUST"="hv001")) %>% 
+  group_split(hv006) %>% setNames(paste0(unique(dhs_hh[[1]]$hv006), '_', unique(dhs_hh[[1]]$hv007)))  
 
-dhs_2015 <- dhs_hh[[2]] %>% group_split(hv006) %>% setNames(paste0(unique(dhs_hh[[2]]$hv006), '_', unique(dhs_hh[[2]]$hv007)))
+dhs_2015 <- left_join(st_as_sf(dhs[[2]]), dhs_hh[[2]], by = c("DHSCLUST"="hv001")) %>% 
+  group_split(hv006) %>% setNames(paste0(unique(dhs_hh[[2]]$hv006), '_', unique(dhs_hh[[2]]$hv007)))
 
-dhs_2018 <- dhs_hh[[3]] %>% group_split(hv006) %>% setNames(paste0(unique(dhs_hh[[3]]$hv006), '_', unique(dhs_hh[[3]]$hv007)))
+dhs_2018 <- left_join(st_as_sf(dhs[[3]]), dhs_hh[[3]], by = c("DHSCLUST"="hv001")) %>% 
+  group_split(hv006) %>% setNames(paste0(unique(dhs_hh[[3]]$hv006), '_', unique(dhs_hh[[3]]$hv007)))
 
 dhs_2018<- dhs_2018[order(names(dhs_2018))]
 
-dhs <- c(dhs_2010, dhs_2015, dhs_2018)
+dhs <- sapply(c(dhs_2010, dhs_2015, dhs_2018), sf:::as_Spatial, simplify = F)
 names(dhs)
-
 
 
 #loading temp rasters in months when DHIS/MIS was conducted
@@ -889,3 +891,43 @@ for (i in 1:length(vars)) {
 
 #still trying to figure out why 2010 amd 2018 observations are less when the csv is generated
 #End
+
+#soil surface wetness
+
+#loading soil surface wetness rasters in months when DHIS/MIS was conducted
+raster_2018_aug <- raster(file.path(RastDir, "surface_soil_wetness",
+                                    "GIOVANNI-g4.timeAvgMap.M2TMNXLND_5_12_4_GWETTOP.20180801-20180831.180W_90S_180E_90N.tif"))
+raster_2018_sep <- raster(file.path(RastDir, "surface_soil_wetness",
+                                    "GIOVANNI-g4.timeAvgMap.M2TMNXLND_5_12_4_GWETTOP.20180901-20180930.180W_90S_180E_90N.tif"))
+raster_2010_oct <- raster(file.path(RastDir, "surface_soil_wetness",
+                                    "GIOVANNI-g4.timeAvgMap.M2TMNXLND_5_12_4_GWETTOP.20101001-20101031.180W_90S_180E_90N.tif"))
+raster_2015_oct <- raster(file.path(RastDir, "surface_soil_wetness",
+                                    "GIOVANNI-g4.timeAvgMap.M2TMNXLND_5_12_4_GWETTOP.20151001-20151031.180W_90S_180E_90N.tif"))
+raster_2018_oct <- raster(file.path(RastDir, "surface_soil_wetness",
+                                    "GIOVANNI-g4.timeAvgMap.M2TMNXLND_5_12_4_GWETTOP.20181001-20181031.180W_90S_180E_90N.tif"))
+raster_2010_nov <- raster(file.path(RastDir, "surface_soil_wetness",
+                                    "GIOVANNI-g4.timeAvgMap.M2TMNXLND_5_12_4_GWETTOP.20101101-20101130.180W_90S_180E_90N.tif"))
+raster_2015_nov <- raster(file.path(RastDir, "surface_soil_wetness",
+                                    "GIOVANNI-g4.timeAvgMap.M2TMNXLND_5_12_4_GWETTOP.20151101-20151130.180W_90S_180E_90N.tif"))
+raster_2018_nov <- raster(file.path(RastDir, "surface_soil_wetness",
+                                    "GIOVANNI-g4.timeAvgMap.M2TMNXLND_5_12_4_GWETTOP.20181101-20181130.180W_90S_180E_90N.tif"))
+raster_2010_dec <- raster(file.path(RastDir, "surface_soil_wetness",
+                                    "GIOVANNI-g4.timeAvgMap.M2TMNXLND_5_12_4_GWETTOP.20101201-20101231.180W_90S_180E_90N.tif"))
+raster_2018_dec <- raster(file.path(RastDir, "surface_soil_wetness",
+                                    "GIOVANNI-g4.timeAvgMap.M2TMNXLND_5_12_4_GWETTOP.20181201-20181231.180W_90S_180E_90N.tif"))
+
+raster <- list(raster_2018_aug, raster_2018_sep, raster_2010_oct, raster_2015_oct, raster_2018_oct,
+               raster_2010_nov, raster_2015_nov, raster_2018_nov, raster_2010_dec, raster_2018_dec)
+
+raster <-sapply(files, raster, simplify = F)
+
+for (i in 1:length(vars)) {
+  var_name <- paste0('soil_wetness_', as.character(vars[i]), 'm')
+  df <- map2(dhs, raster, get_crs)
+  df <- pmap(list(raster, df, vars[i]), extract_fun)
+  df <- df %>%  map(~rename_with(., .fn=~paste0(var_name), .cols = contains('GIOVANNI')))
+  df <- plyr::ldply(df)%>% dplyr::select(-c(ID))
+  write.csv(df, file = file.path(GeoDir, paste0('soil_wetness_', as.character(vars[i]), 
+                                                'm_buffer', "_DHS_10_15_18.csv")),row.names = FALSE)
+}
+
