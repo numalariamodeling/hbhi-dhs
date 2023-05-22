@@ -51,5 +51,6 @@ generate_smooth_values <- function(dat){
 }
 
 
-
+#raw_data_projects <- read.csv("./raw_dat/raw_data_projects.csv")
+#saveRDS(raw_data_projects,"Projects.rds")
 

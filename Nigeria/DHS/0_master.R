@@ -24,7 +24,7 @@ if ("mambrose" %in% user) {
 } else {
   Drive <- file.path(gsub("[\\]", "/", gsub("Documents", "", Sys.getenv("HOME"))))
   NuDir <- file.path(Drive, "Box", "NU-malaria-team")
-  NGDir <-file.path(NuDir, "data", "nigeria_dhs",  "data_analysis")
+  NGDir <-file.path(NuDir, "data","nigeria", "nigeria_dhs",  "data_analysis")
   DataDir <-file.path(NGDir, "data")
   ResultDir <-file.path(NGDir, "results")
   BinDir <- file.path(NGDir, "bin")
@@ -45,14 +45,14 @@ source(file.path(VarDir, "generic_functions", "DHS_fun.R"))
 ## -----------------------------------------
 
 # state shape file 
-stateshp <- readOGR(file.path(DataDir,"gadm36_NGA_shp"), layer ="gadm36_NGA_1", use_iconv=TRUE, encoding= "UTF-8")
+stateshp <- readOGR(file.path(DataDir,"shapefiles", "gadm36_NGA_shp"), layer ="gadm36_NGA_1", use_iconv=TRUE, encoding= "UTF-8")
 state_sf <- st_as_sf(stateshp)
 colnames(state_sf)[4] <- "State"
 
 
 # LGA shape file
-LGAshp <- readOGR(file.path(DataDir,"Nigeria_LGAs_shapefile_191016"), layer ="NGA_LGAs", use_iconv=TRUE, encoding= "UTF-8")
-LGA_clean_names <- clean_LGA_2(file.path(DataDir,"Nigeria_LGAs_shapefile_191016"), file.path(BinDir,"names/LGA_shp_pop_names.csv"))
+LGAshp <- readOGR(file.path(DataDir,"shapefiles","Nigeria_LGAs_shapefile_191016"), layer ="NGA_LGAs", use_iconv=TRUE, encoding= "UTF-8")
+LGA_clean_names <- clean_LGA_2(file.path(DataDir,"shapefiles" , "Nigeria_LGAs_shapefile_191016"), file.path(BinDir,"names/LGA_shp_pop_names.csv"))
 class(LGA_clean_names)
 
 
@@ -65,7 +65,7 @@ rep_DS <- read.csv(file.path(BinDir, "rep_DS/representative_DS_orig60clusters.cs
 ## -----------------------------------------
 
 library(nngeo)
-var_df <- read.csv(file.path(SrcDir, "analysis_variables_requirements.csv"))
+var_df <- read.csv(file.path(SrcDir, "analysis_variables_requirements_check.csv"))
 for (i in 1:nrow(var_df)){
       if (var_df[, "variable_to_run"][i] == TRUE){
       Variable <-  var_df[, "Variable"][i]
